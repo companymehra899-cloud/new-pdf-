@@ -189,6 +189,7 @@
         tx.onabort = () => reject(tx.error || new Error("Save aborted"));
         tx.objectStore("pending").put(payload, "current");
       });
+      try { sessionStorage.setItem("dm-selected-tool", payload.tool); } catch (e) {}
       window.location.assign("workspace.html?tool=" + encodeURIComponent(payload.tool));
     } catch (err) {
       opening = false;

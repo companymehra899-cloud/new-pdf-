@@ -4,17 +4,30 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Workspace - Docu-Magic</title>
+<script>
+(function () {
+  var params = new URLSearchParams(window.location.search);
+  var tool = (params.get("tool") || "").trim();
+  try {
+    if (!tool) tool = sessionStorage.getItem("dm-selected-tool") || "";
+  } catch (e) {}
+  if (tool) {
+    document.documentElement.setAttribute("data-tool", tool);
+    try { sessionStorage.setItem("dm-selected-tool", tool); } catch (e) {}
+  }
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css" />
+<link rel="stylesheet" href="workspace.css?v=4" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2329b6e8'/%3E%3Cpath d='M11 8h7l4 4v12a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
 
 <header class="ws-topbar">
   <div class="ws-topbar-left">
-    <a href="index.html" class="ws-back" aria-label="Back to home">
+    <a href="index.html" class="ws-back" id="wsBack" aria-label="Back">
       <svg viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
     <span class="ws-logo">
@@ -119,7 +132,11 @@
   </section>
 
   <aside class="ws-panel" id="sidePanel">
-    <div class="ws-tabs">
+    <div class="ws-workspace-head" id="workspaceHead">
+      <h3 id="workspaceTitle">Workspace</h3>
+      <p class="ws-note" id="workspaceHint">Upload a PDF to start.</p>
+    </div>
+    <div class="ws-tabs" id="workspaceTabs">
       <button type="button" class="ws-tab is-active" data-tab="page">Page</button>
       <button type="button" class="ws-tab" data-tab="file">Tools</button>
     </div>
@@ -157,6 +174,8 @@
         </button>
       </div>
       <div class="ws-panel-block" data-scope="split">
+        <h4>Split PDF</h4>
+        <p class="ws-note">Select a page, then split the document after that page.</p>
         <button type="button" class="ws-list-btn" id="splitBtn">
           <svg viewBox="0 0 24 24"><path d="M12 3v18M7 8l-3 4 3 4M17 8l3 4-3 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Split after selection
@@ -171,6 +190,38 @@
     </div>
 
     <div class="ws-tab-body" data-body="file">
+      <div class="ws-panel-block" data-scope="edit">
+        <h4>Edit PDF</h4>
+        <p class="ws-note">Click a page to add text. Use Erase to remove an overlay.</p>
+        <button type="button" class="ws-list-btn" id="addTextBtn">
+          <svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add text
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="image">
+        <h4>Add images</h4>
+        <p class="ws-note">Choose an image, then click the page to place it.</p>
+        <button type="button" class="ws-list-btn" id="placeImageBtn">
+          <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 17l5-5 4 4 3-3 3 3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          Choose image
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="sign">
+        <h4>Sign document</h4>
+        <p class="ws-note">Draw a signature, then click the page to place it.</p>
+        <button type="button" class="ws-list-btn" id="placeSignBtn">
+          <svg viewBox="0 0 24 24"><path d="M4 18c4-8 6 3 10-4 2-4 4-2 6-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Draw signature
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="watermark">
+        <h4>Watermark</h4>
+        <p class="ws-note">Add a text or image watermark by placing it on the page.</p>
+        <button type="button" class="ws-list-btn" id="placeWatermarkBtn">
+          <svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add watermark text
+        </button>
+      </div>
       <div class="ws-panel-block" data-scope="merge">
         <h4>Merge all pages</h4>
         <p class="ws-note">All pages and files in this workspace are combined into one PDF on export.</p>
@@ -204,6 +255,8 @@
         </button>
       </div>
       <div class="ws-panel-block" data-scope="jpg-pdf">
+        <h4>Images to PDF</h4>
+        <p class="ws-note">Turn the files in this workspace into one PDF.</p>
         <button type="button" class="ws-list-btn" id="convertPdfBtn">
           <svg viewBox="0 0 24 24"><path d="M13 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 4h6v6M20 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Images to PDF (from files)
@@ -255,6 +308,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js"></script>
+<script src="workspace.js?v=4"></script>
 </body>
 </html>

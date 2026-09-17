@@ -239,6 +239,34 @@ svg { display: block; }
 .ws-canvas-toolbar.is-empty {
   display: none;
 }
+html[data-tool="edit"] .ws-chip:not([data-mode="text"]):not([data-mode="erase"]),
+html[data-tool="annotate"] .ws-chip:not([data-mode="text"]):not([data-mode="erase"]),
+html[data-tool="watermark"] .ws-chip:not([data-mode="text"]):not([data-mode="image"]):not([data-mode="erase"]),
+html[data-tool="image"] .ws-chip:not([data-mode="image"]):not([data-mode="erase"]),
+html[data-tool="sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]),
+html[data-tool="request-sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]) {
+  display: none !important;
+}
+html[data-tool="edit"] .ws-canvas-toolbar,
+html[data-tool="annotate"] .ws-canvas-toolbar,
+html[data-tool="watermark"] .ws-canvas-toolbar,
+html[data-tool="image"] .ws-canvas-toolbar,
+html[data-tool="sign"] .ws-canvas-toolbar,
+html[data-tool="request-sign"] .ws-canvas-toolbar {
+  display: flex;
+}
+html[data-tool="rotate"] .ws-canvas-toolbar,
+html[data-tool="split"] .ws-canvas-toolbar,
+html[data-tool="merge"] .ws-canvas-toolbar,
+html[data-tool="compress"] .ws-canvas-toolbar,
+html[data-tool="protect"] .ws-canvas-toolbar,
+html[data-tool="convert"] .ws-canvas-toolbar,
+html[data-tool="pdf-jpg"] .ws-canvas-toolbar,
+html[data-tool="jpg-pdf"] .ws-canvas-toolbar,
+html[data-tool="pdf-word"] .ws-canvas-toolbar,
+html[data-tool="word-pdf"] .ws-canvas-toolbar {
+  display: none;
+}
 .ws-chip[hidden] {
   display: none !important;
 }
@@ -338,11 +366,28 @@ svg { display: block; }
   flex-direction: column;
   min-height: 0;
 }
+.ws-workspace-head {
+  padding: 16px 16px 4px;
+  flex-shrink: 0;
+}
+.ws-workspace-head h3 {
+  margin: 0;
+  font-family: "Baloo 2", sans-serif;
+  font-size: 20px;
+  color: var(--ws-ink);
+}
 .ws-tabs {
-  display: flex;
+  display: none;
   gap: 4px;
   padding: 12px 14px 0;
   flex-shrink: 0;
+}
+html:not([data-tool]) .ws-tabs,
+html[data-tool=""] .ws-tabs {
+  display: flex;
+}
+html[data-tool]:not([data-tool=""]) .ws-tabs {
+  display: none !important;
 }
 .ws-tab {
   flex: 1;
@@ -360,8 +405,55 @@ svg { display: block; }
 .ws-tab-body.is-active { display: block; }
 .ws-tab-body[hidden] { display: none !important; }
 
-.ws-panel-block { margin-bottom: 22px; }
+.ws-panel-block { margin-bottom: 22px; display: none; }
+html:not([data-tool]) .ws-panel-block,
+html[data-tool=""] .ws-panel-block {
+  display: block;
+}
+html[data-tool="edit"] .ws-panel-block[data-scope="edit"],
+html[data-tool="annotate"] .ws-panel-block[data-scope="edit"],
+html[data-tool="watermark"] .ws-panel-block[data-scope="watermark"],
+html[data-tool="image"] .ws-panel-block[data-scope="image"],
+html[data-tool="sign"] .ws-panel-block[data-scope="sign"],
+html[data-tool="request-sign"] .ws-panel-block[data-scope="sign"],
+html[data-tool="rotate"] .ws-panel-block[data-scope="rotate"],
+html[data-tool="split"] .ws-panel-block[data-scope="split"],
+html[data-tool="merge"] .ws-panel-block[data-scope="merge"],
+html[data-tool="merge"] .ws-panel-block[data-scope="arrange"],
+html[data-tool="compress"] .ws-panel-block[data-scope="compress"],
+html[data-tool="protect"] .ws-panel-block[data-scope="protect"],
+html[data-tool="convert"] .ws-panel-block[data-scope="pdf-jpg"],
+html[data-tool="convert"] .ws-panel-block[data-scope="jpg-pdf"],
+html[data-tool="pdf-jpg"] .ws-panel-block[data-scope="pdf-jpg"],
+html[data-tool="jpg-pdf"] .ws-panel-block[data-scope="jpg-pdf"],
+html[data-tool] .ws-panel-block[data-scope="info"],
+html[data-tool] .ws-panel-block[data-scope="files"] {
+  display: block;
+}
 .ws-panel-block[hidden] { display: none !important; }
+html[data-tool="edit"] .ws-tab-body[data-body="page"],
+html[data-tool="annotate"] .ws-tab-body[data-body="page"],
+html[data-tool="watermark"] .ws-tab-body[data-body="page"],
+html[data-tool="image"] .ws-tab-body[data-body="page"],
+html[data-tool="sign"] .ws-tab-body[data-body="page"],
+html[data-tool="request-sign"] .ws-tab-body[data-body="page"],
+html[data-tool="compress"] .ws-tab-body[data-body="page"],
+html[data-tool="protect"] .ws-tab-body[data-body="page"],
+html[data-tool="convert"] .ws-tab-body[data-body="page"],
+html[data-tool="pdf-jpg"] .ws-tab-body[data-body="page"],
+html[data-tool="jpg-pdf"] .ws-tab-body[data-body="page"],
+html[data-tool="pdf-word"] .ws-tab-body[data-body="page"],
+html[data-tool="word-pdf"] .ws-tab-body[data-body="page"] {
+  display: none !important;
+}
+html[data-tool="rotate"] .ws-tab-body[data-body="page"],
+html[data-tool="split"] .ws-tab-body[data-body="page"],
+html[data-tool="merge"] .ws-tab-body[data-body="page"] {
+  display: block;
+}
+html[data-tool] .ws-tab-body[data-body="file"] {
+  display: block;
+}
 .ws-panel-block h4 {
   font-family: "Baloo 2", sans-serif;
   font-size: 14px;

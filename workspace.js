@@ -16,7 +16,7 @@
     zoom: 1,
     current: 0,
     tool: "select",
-    entryTool: "",
+    selectedTool: "",
     pendingImage: null,
     pendingSignature: null,
     history: [],
@@ -1391,75 +1391,105 @@
     if (mode === "sign") openSignaturePad();
   }
 
-  const TOOL_SCOPES = {
-    edit: { chips: ["text"], page: [], file: ["info", "files"], tab: "file", mode: "text" },
-    annotate: { chips: ["text"], page: [], file: ["info", "files"], tab: "file", mode: "text" },
-    watermark: { chips: ["text", "image"], page: [], file: ["info", "files"], tab: "file", mode: "text" },
-    image: { chips: ["image"], page: [], file: ["info", "files"], tab: "file", mode: "image" },
-    sign: { chips: ["sign"], page: [], file: ["info", "files"], tab: "file", mode: "sign" },
-    "request-sign": { chips: ["sign"], page: [], file: ["info", "files"], tab: "file", mode: "sign" },
-    rotate: { chips: [], page: ["rotate"], file: ["info", "files"], tab: "page" },
-    split: { chips: [], page: ["split"], file: ["info", "files"], tab: "page" },
-    merge: { chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file" },
-    compress: { chips: [], page: [], file: ["compress", "info", "files"], tab: "file" },
-    protect: { chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
-    convert: { chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-jpg": { chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
-    "jpg-pdf": { chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-word": { chips: [], page: [], file: ["info", "files"], tab: "file" },
-    "word-pdf": { chips: [], page: [], file: ["info", "files"], tab: "file" },
+  const WORKSPACES = {
+    edit: { title: "Edit PDF", hint: "Add or overlay text on pages.", chips: ["text", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
+    annotate: { title: "Annotate PDF", hint: "Mark up pages with text overlays.", chips: ["text", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
+    watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
+    image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
+    sign: { title: "Sign Document", hint: "Draw a signature and place it on a page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
+    "request-sign": { title: "Request Signature", hint: "Add a signature box, then download and share.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
+    rotate: { title: "Rotate PDF", hint: "Rotate selected pages left or right.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page" },
+    split: { title: "Split PDF", hint: "Split the document after the selected page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page" },
+    merge: { title: "Merge PDF", hint: "Combine every page in this workspace into one PDF.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file" },
+    compress: { title: "Compress PDF", hint: "Rebuild with compressed streams to reduce size.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file" },
+    protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
+    convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
+    "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
+    "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
+    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["info", "files"], tab: "file" },
+    "word-pdf": { title: "Word to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["info", "files"], tab: "file" },
   };
 
-  function applyToolScope(tool) {
-    state.entryTool = tool || "";
+  function readStoredTool() {
+    try {
+      return sessionStorage.getItem("dm-selected-tool") || "";
+    } catch (err) {
+      return "";
+    }
+  }
+
+  function storeSelectedTool(tool) {
+    try {
+      if (tool) sessionStorage.setItem("dm-selected-tool", tool);
+    } catch (err) {}
+  }
+
+  function resolveSelectedTool(pendingTool) {
+    const params = new URLSearchParams(window.location.search);
+    return (pendingTool || params.get("tool") || readStoredTool() || "").trim();
+  }
+
+  function applySelectedTool(tool, silent) {
+    const key = tool || "";
+    state.selectedTool = key;
+    storeSelectedTool(key);
+    if (key) document.documentElement.setAttribute("data-tool", key);
+    else document.documentElement.removeAttribute("data-tool");
+
+    const workspace = WORKSPACES[key];
+    const titleEl = document.getElementById("workspaceTitle");
+    const hintEl = document.getElementById("workspaceHint");
     const toolbar = document.getElementById("canvasToolbar");
     const chips = document.querySelectorAll(".ws-chip");
     const blocks = document.querySelectorAll(".ws-panel-block[data-scope]");
-    const scope = TOOL_SCOPES[tool];
+    const pageBody = document.querySelector('.ws-tab-body[data-body="page"]');
+    const fileBody = document.querySelector('.ws-tab-body[data-body="file"]');
 
-    if (!scope) {
+    if (titleEl) titleEl.textContent = workspace ? workspace.title : "Workspace";
+    if (hintEl) hintEl.textContent = workspace ? workspace.hint : "Upload a PDF to start.";
+    document.title = (workspace ? workspace.title : "Workspace") + " - Docu-Magic";
+
+    const back = document.getElementById("wsBack");
+    if (back) back.href = key ? "tool.html?id=" + encodeURIComponent(key) : "index.html";
+
+    if (!workspace) {
       chips.forEach((c) => { c.hidden = false; });
       blocks.forEach((b) => { b.hidden = false; });
-      document.querySelectorAll(".ws-tab").forEach((t) => { t.hidden = false; });
-      document.querySelectorAll(".ws-tab-body").forEach((b) => { b.hidden = false; });
+      if (pageBody) {
+        pageBody.hidden = false;
+        pageBody.classList.add("is-active");
+      }
+      if (fileBody) {
+        fileBody.hidden = false;
+        fileBody.classList.remove("is-active");
+      }
       if (toolbar) toolbar.classList.remove("is-empty");
+      setTool("select", true);
       return;
     }
 
     chips.forEach((c) => {
-      c.hidden = scope.chips.indexOf(c.dataset.mode) === -1;
+      c.hidden = workspace.chips.indexOf(c.dataset.mode) === -1;
     });
-    if (toolbar) toolbar.classList.toggle("is-empty", !scope.chips.length);
+    if (toolbar) toolbar.classList.toggle("is-empty", !workspace.chips.length);
 
-    const allowed = (scope.page || []).concat(scope.file || []);
+    const allowed = (workspace.page || []).concat(workspace.file || []);
     blocks.forEach((b) => {
       b.hidden = allowed.indexOf(b.dataset.scope) === -1;
     });
 
-    const pageTab = document.querySelector('.ws-tab[data-tab="page"]');
-    const fileTab = document.querySelector('.ws-tab[data-tab="file"]');
-    const pageBody = document.querySelector('.ws-tab-body[data-body="page"]');
-    const fileBody = document.querySelector('.ws-tab-body[data-body="file"]');
-    const pageOn = (scope.page || []).length > 0;
-    const fileOn = (scope.file || []).length > 0;
+    const pageOn = (workspace.page || []).length > 0;
+    if (pageBody) {
+      pageBody.classList.toggle("is-needed", pageOn);
+      pageBody.classList.toggle("is-active", pageOn);
+      pageBody.hidden = !pageOn;
+    }
+    if (fileBody) {
+      fileBody.classList.add("is-active");
+      fileBody.hidden = false;
+    }
 
-    if (pageTab) pageTab.hidden = !pageOn;
-    if (fileTab) fileTab.hidden = !fileOn;
-    if (pageBody) pageBody.hidden = !pageOn;
-    if (fileBody) fileBody.hidden = !fileOn;
-
-    let tab = scope.tab;
-    if (tab === "page" && !pageOn) tab = "file";
-    if (tab === "file" && !fileOn) tab = "page";
-
-    document.querySelectorAll(".ws-tab").forEach((t) => {
-      t.classList.toggle("is-active", t.dataset.tab === tab && !t.hidden);
-    });
-    document.querySelectorAll(".ws-tab-body").forEach((body) => {
-      body.classList.toggle("is-active", body.dataset.body === tab && !body.hidden);
-    });
-
-    if (scope.mode) setTool(scope.mode, true);
+    if (workspace.mode) setTool(workspace.mode, !!silent);
   }
 
   /* ================= bindings ================= */
@@ -1507,6 +1537,15 @@
     document.getElementById("protectBtn").addEventListener("click", openProtectModal);
     document.getElementById("convertImagesBtn").addEventListener("click", openConvertImagesModal);
     document.getElementById("convertPdfBtn").addEventListener("click", openImagesToPdf);
+
+    const addTextBtn = document.getElementById("addTextBtn");
+    if (addTextBtn) addTextBtn.addEventListener("click", () => setTool("text", true));
+    const placeImageBtn = document.getElementById("placeImageBtn");
+    if (placeImageBtn) placeImageBtn.addEventListener("click", () => setTool("image"));
+    const placeSignBtn = document.getElementById("placeSignBtn");
+    if (placeSignBtn) placeSignBtn.addEventListener("click", () => setTool("sign"));
+    const placeWatermarkBtn = document.getElementById("placeWatermarkBtn");
+    if (placeWatermarkBtn) placeWatermarkBtn.addEventListener("click", () => setTool("text", true));
 
     document.getElementById("selectAllPages").addEventListener("click", () => {
       if (!state.pages.length) return;
@@ -1650,10 +1689,13 @@
     renderStack();
     updateHistoryButtons();
 
-    const params = new URLSearchParams(window.location.search);
     const pending = await readPending();
-    const incomingTool = (pending && pending.tool) || params.get("tool") || "";
-    applyToolScope(incomingTool);
+    const incomingTool = resolveSelectedTool(pending && pending.tool);
+    applySelectedTool(incomingTool, true);
+
+    if (incomingTool && !new URLSearchParams(window.location.search).get("tool")) {
+      history.replaceState(null, "", "workspace.html?tool=" + encodeURIComponent(incomingTool));
+    }
 
     if (pending && pending.files && pending.files.length) {
       for (const entry of pending.files) {
@@ -1675,80 +1717,7 @@
       clearPending();
     }
 
-    applyIncomingTool(incomingTool);
-  }
-
-  function openToolsTab() {
-    document.querySelectorAll(".ws-tab").forEach((t) => {
-      t.classList.toggle("is-active", t.dataset.tab === "file");
-    });
-    document.querySelectorAll(".ws-tab-body").forEach((body) => {
-      body.classList.toggle("is-active", body.dataset.body === "file");
-    });
-  }
-
-  function applyIncomingTool(tool) {
-    if (!tool) return;
-    const map = {
-      convert: () => {
-        openToolsTab();
-        openConvertImagesModal();
-      },
-      protect: () => {
-        openToolsTab();
-        openProtectModal();
-      },
-      compress: () => {
-        openToolsTab();
-        compressAndDownload();
-      },
-      merge: () => {
-        openToolsTab();
-        exportPdf({ suffix: "-merged" });
-      },
-      rotate: () => {
-        if (!state.pages.length) return;
-        state.selected = new Set(state.pages.map((_, i) => i));
-        applySelectionClasses();
-        updateSelectionInfo();
-        rotateSelection(90);
-      },
-      split: () => {
-        if (!state.pages.length) return;
-        state.selected.add(0);
-        applySelectionClasses();
-        updateSelectionInfo();
-        splitAfterSelection();
-      },
-      edit: () => applyToolScope("edit"),
-      annotate: () => applyToolScope("annotate"),
-      watermark: () => applyToolScope("watermark"),
-      image: () => {
-        applyToolScope("image");
-        setTool("image");
-      },
-      sign: () => {
-        applyToolScope("sign");
-        setTool("sign");
-      },
-      "request-sign": () => {
-        applyToolScope("request-sign");
-        setTool("sign");
-      },
-      "pdf-jpg": () => {
-        openToolsTab();
-        openConvertImagesModal();
-      },
-      "jpg-pdf": () => {
-        exportPdf({ suffix: "-from-images" });
-      },
-      "pdf-word": () => exportPdfAsText(),
-      "word-pdf": () => exportPdf({ suffix: "-from-text" }),
-    };
-    const fn = map[tool];
-    if (fn) {
-      setTimeout(fn, 250);
-    }
+    applySelectedTool(incomingTool, true);
   }
 
   if (!pdfjsLib || !PDFLib.PDFDocument) {

@@ -186,6 +186,7 @@
         tx.oncomplete = resolve;
         tx.onerror = () => reject(tx.error);
       });
+      try { sessionStorage.setItem("dm-selected-tool", tool); } catch (e) {}
       window.location.href = "workspace.html?tool=" + encodeURIComponent(tool);
     } catch (err) {
       console.error(err);
