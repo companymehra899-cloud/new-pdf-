@@ -1392,22 +1392,22 @@
   }
 
   const WORKSPACES = {
-    edit: { title: "Edit PDF", hint: "Add or overlay text on pages.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
-    annotate: { title: "Annotate PDF", hint: "Mark up pages with text overlays.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
-    watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
-    image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
-    sign: { title: "Sign Document", hint: "Draw a signature and place it on a page.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
-    "request-sign": { title: "Request Signature", hint: "Add a signature box, then download and share.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
-    rotate: { title: "Rotate PDF", hint: "Rotate selected pages left or right.", chips: ["select", "text", "image", "sign", "erase"], page: ["rotate"], file: ["info", "files"], tab: "page" },
-    split: { title: "Split PDF", hint: "Split the document after the selected page.", chips: ["select", "text", "image", "sign", "erase"], page: ["split"], file: ["info", "files"], tab: "page" },
-    merge: { title: "Merge PDF", hint: "Combine every page in this workspace into one PDF.", chips: ["select", "text", "image", "sign", "erase"], page: ["arrange"], file: ["merge", "info", "files"], tab: "file" },
-    compress: { title: "Compress PDF", hint: "Rebuild with compressed streams to reduce size.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["compress", "info", "files"], tab: "file" },
-    protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["protect", "info", "files"], tab: "file" },
-    convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
-    "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["info", "files"], tab: "file" },
-    "word-pdf": { title: "Word to PDF", hint: "Download the converted PDF.", chips: ["select", "text", "image", "sign", "erase"], page: [], file: ["info", "files"], tab: "file" },
+    edit: { title: "Edit PDF", hint: "Add or overlay text on pages.", chips: ["text", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
+    annotate: { title: "Annotate PDF", hint: "Mark up pages with text overlays.", chips: ["text", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
+    watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
+    image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
+    sign: { title: "Sign Document", hint: "Draw a signature and place it on a page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
+    "request-sign": { title: "Request Signature", hint: "Add a signature box, then download and share.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
+    rotate: { title: "Rotate PDF", hint: "Rotate selected pages left or right.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page" },
+    split: { title: "Split PDF", hint: "Split the document after the selected page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page" },
+    merge: { title: "Merge PDF", hint: "Combine every page in this workspace into one PDF.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file" },
+    compress: { title: "Compress PDF", hint: "Rebuild with compressed streams to reduce size.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file" },
+    protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
+    convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
+    "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
+    "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
+    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["info", "files"], tab: "file" },
+    "word-pdf": { title: "Word to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["info", "files"], tab: "file" },
   };
 
   function readStoredTool() {
