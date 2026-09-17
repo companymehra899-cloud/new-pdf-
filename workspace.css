@@ -236,37 +236,6 @@ svg { display: block; }
   overflow-x: auto;
   flex-shrink: 0;
 }
-.ws-canvas-toolbar.is-empty {
-  display: none;
-}
-html[data-tool="edit"] .ws-chip:not([data-mode="text"]):not([data-mode="erase"]),
-html[data-tool="annotate"] .ws-chip:not([data-mode="text"]):not([data-mode="erase"]),
-html[data-tool="watermark"] .ws-chip:not([data-mode="text"]):not([data-mode="image"]):not([data-mode="erase"]),
-html[data-tool="image"] .ws-chip:not([data-mode="image"]):not([data-mode="erase"]),
-html[data-tool="sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]),
-html[data-tool="request-sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]) {
-  display: none !important;
-}
-html[data-tool="edit"] .ws-canvas-toolbar,
-html[data-tool="annotate"] .ws-canvas-toolbar,
-html[data-tool="watermark"] .ws-canvas-toolbar,
-html[data-tool="image"] .ws-canvas-toolbar,
-html[data-tool="sign"] .ws-canvas-toolbar,
-html[data-tool="request-sign"] .ws-canvas-toolbar {
-  display: flex;
-}
-html[data-tool="rotate"] .ws-canvas-toolbar,
-html[data-tool="split"] .ws-canvas-toolbar,
-html[data-tool="merge"] .ws-canvas-toolbar,
-html[data-tool="compress"] .ws-canvas-toolbar,
-html[data-tool="protect"] .ws-canvas-toolbar,
-html[data-tool="convert"] .ws-canvas-toolbar,
-html[data-tool="pdf-jpg"] .ws-canvas-toolbar,
-html[data-tool="jpg-pdf"] .ws-canvas-toolbar,
-html[data-tool="pdf-word"] .ws-canvas-toolbar,
-html[data-tool="word-pdf"] .ws-canvas-toolbar {
-  display: none;
-}
 .ws-chip[hidden] {
   display: none !important;
 }
