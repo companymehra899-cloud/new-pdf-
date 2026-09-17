@@ -16,6 +16,7 @@
     zoom: 1,
     current: 0,
     tool: "select",
+    entryTool: "",
     pendingImage: null,
     pendingSignature: null,
     history: [],
@@ -1390,6 +1391,77 @@
     if (mode === "sign") openSignaturePad();
   }
 
+  const TOOL_SCOPES = {
+    edit: { chips: ["text"], page: [], file: ["info", "files"], tab: "file", mode: "text" },
+    annotate: { chips: ["text"], page: [], file: ["info", "files"], tab: "file", mode: "text" },
+    watermark: { chips: ["text", "image"], page: [], file: ["info", "files"], tab: "file", mode: "text" },
+    image: { chips: ["image"], page: [], file: ["info", "files"], tab: "file", mode: "image" },
+    sign: { chips: ["sign"], page: [], file: ["info", "files"], tab: "file", mode: "sign" },
+    "request-sign": { chips: ["sign"], page: [], file: ["info", "files"], tab: "file", mode: "sign" },
+    rotate: { chips: [], page: ["rotate"], file: ["info", "files"], tab: "page" },
+    split: { chips: [], page: ["split"], file: ["info", "files"], tab: "page" },
+    merge: { chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file" },
+    compress: { chips: [], page: [], file: ["compress", "info", "files"], tab: "file" },
+    protect: { chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
+    convert: { chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
+    "pdf-jpg": { chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
+    "jpg-pdf": { chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
+    "pdf-word": { chips: [], page: [], file: ["info", "files"], tab: "file" },
+    "word-pdf": { chips: [], page: [], file: ["info", "files"], tab: "file" },
+  };
+
+  function applyToolScope(tool) {
+    state.entryTool = tool || "";
+    const toolbar = document.getElementById("canvasToolbar");
+    const chips = document.querySelectorAll(".ws-chip");
+    const blocks = document.querySelectorAll(".ws-panel-block[data-scope]");
+    const scope = TOOL_SCOPES[tool];
+
+    if (!scope) {
+      chips.forEach((c) => { c.hidden = false; });
+      blocks.forEach((b) => { b.hidden = false; });
+      document.querySelectorAll(".ws-tab").forEach((t) => { t.hidden = false; });
+      document.querySelectorAll(".ws-tab-body").forEach((b) => { b.hidden = false; });
+      if (toolbar) toolbar.classList.remove("is-empty");
+      return;
+    }
+
+    chips.forEach((c) => {
+      c.hidden = scope.chips.indexOf(c.dataset.mode) === -1;
+    });
+    if (toolbar) toolbar.classList.toggle("is-empty", !scope.chips.length);
+
+    const allowed = (scope.page || []).concat(scope.file || []);
+    blocks.forEach((b) => {
+      b.hidden = allowed.indexOf(b.dataset.scope) === -1;
+    });
+
+    const pageTab = document.querySelector('.ws-tab[data-tab="page"]');
+    const fileTab = document.querySelector('.ws-tab[data-tab="file"]');
+    const pageBody = document.querySelector('.ws-tab-body[data-body="page"]');
+    const fileBody = document.querySelector('.ws-tab-body[data-body="file"]');
+    const pageOn = (scope.page || []).length > 0;
+    const fileOn = (scope.file || []).length > 0;
+
+    if (pageTab) pageTab.hidden = !pageOn;
+    if (fileTab) fileTab.hidden = !fileOn;
+    if (pageBody) pageBody.hidden = !pageOn;
+    if (fileBody) fileBody.hidden = !fileOn;
+
+    let tab = scope.tab;
+    if (tab === "page" && !pageOn) tab = "file";
+    if (tab === "file" && !fileOn) tab = "page";
+
+    document.querySelectorAll(".ws-tab").forEach((t) => {
+      t.classList.toggle("is-active", t.dataset.tab === tab && !t.hidden);
+    });
+    document.querySelectorAll(".ws-tab-body").forEach((body) => {
+      body.classList.toggle("is-active", body.dataset.body === tab && !body.hidden);
+    });
+
+    if (scope.mode) setTool(scope.mode, true);
+  }
+
   /* ================= bindings ================= */
 
   function bindTopbar() {
@@ -1454,7 +1526,10 @@
     });
 
     document.querySelectorAll(".ws-chip").forEach((chip) => {
-      chip.addEventListener("click", () => setTool(chip.dataset.mode));
+      chip.addEventListener("click", () => {
+        if (chip.hidden) return;
+        setTool(chip.dataset.mode);
+      });
     });
 
     document.getElementById("modalClose").addEventListener("click", closeModal);
@@ -1571,12 +1646,15 @@
     bindPanel();
     bindUpload();
     bindKeyboard();
-    setTool("select");
     updateMeta();
     renderStack();
     updateHistoryButtons();
 
+    const params = new URLSearchParams(window.location.search);
     const pending = await readPending();
+    const incomingTool = (pending && pending.tool) || params.get("tool") || "";
+    applyToolScope(incomingTool);
+
     if (pending && pending.files && pending.files.length) {
       for (const entry of pending.files) {
         const file = new File([entry.data], entry.name, { type: entry.type });
@@ -1591,18 +1669,12 @@
         state.history.push(snapshot());
         if (state.sources[0]) el.fileName.value = baseName(state.sources[0].name) + ".pdf";
         await rerender("all");
-        if (pending.tool && pending.tool !== "select") {
-          toast("Loaded " + state.sources.length + " file(s)");
-        } else {
-          toast("Loaded " + state.sources.length + " file(s)");
-        }
+        toast("Loaded " + state.sources.length + " file(s)");
         status("Loaded " + state.pages.length + " page(s)");
       }
       clearPending();
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const incomingTool = (pending && pending.tool) || params.get("tool") || "";
     applyIncomingTool(incomingTool);
   }
 
@@ -1648,9 +1720,21 @@
         updateSelectionInfo();
         splitAfterSelection();
       },
-      edit: () => setTool("text", true),
-      image: () => setTool("image"),
-      sign: () => setTool("sign"),
+      edit: () => applyToolScope("edit"),
+      annotate: () => applyToolScope("annotate"),
+      watermark: () => applyToolScope("watermark"),
+      image: () => {
+        applyToolScope("image");
+        setTool("image");
+      },
+      sign: () => {
+        applyToolScope("sign");
+        setTool("sign");
+      },
+      "request-sign": () => {
+        applyToolScope("request-sign");
+        setTool("sign");
+      },
       "pdf-jpg": () => {
         openToolsTab();
         openConvertImagesModal();

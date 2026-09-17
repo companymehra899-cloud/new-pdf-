@@ -85,7 +85,7 @@
   </aside>
 
   <section class="ws-canvas-wrap">
-    <div class="ws-canvas-toolbar">
+    <div class="ws-canvas-toolbar" id="canvasToolbar">
       <button type="button" class="ws-chip is-active" data-mode="select" id="modeSelect">
         <svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-2 6z" fill="currentColor"/></svg>
         Select
@@ -118,14 +118,14 @@
     </div>
   </section>
 
-  <aside class="ws-panel">
+  <aside class="ws-panel" id="sidePanel">
     <div class="ws-tabs">
       <button type="button" class="ws-tab is-active" data-tab="page">Page</button>
       <button type="button" class="ws-tab" data-tab="file">Tools</button>
     </div>
 
     <div class="ws-tab-body is-active" data-body="page">
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="rotate">
         <h4>Rotate</h4>
         <div class="ws-btn-row">
           <button type="button" class="ws-square" data-rotate="-90" title="Rotate left">
@@ -137,7 +137,7 @@
         </div>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="arrange">
         <h4>Arrange</h4>
         <div class="ws-btn-row">
           <button type="button" class="ws-square" id="moveUp" title="Move earlier">
@@ -149,16 +149,20 @@
         </div>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="extract">
         <h4>Page actions</h4>
         <button type="button" class="ws-list-btn" id="extractBtn">
           <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Extract selected
         </button>
+      </div>
+      <div class="ws-panel-block" data-scope="split">
         <button type="button" class="ws-list-btn" id="splitBtn">
           <svg viewBox="0 0 24 24"><path d="M12 3v18M7 8l-3 4 3 4M17 8l3 4-3 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Split after selection
         </button>
+      </div>
+      <div class="ws-panel-block" data-scope="delete">
         <button type="button" class="ws-list-btn is-danger" id="deleteBtn">
           <svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Delete selected
@@ -167,13 +171,13 @@
     </div>
 
     <div class="ws-tab-body" data-body="file">
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="merge">
         <h4>Merge all pages</h4>
         <p class="ws-note">All pages and files in this workspace are combined into one PDF on export.</p>
         <button type="button" class="ws-btn ws-btn-primary ws-block" id="mergeBtn">Merge &amp; download</button>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="compress">
         <h4>Compress PDF</h4>
         <p class="ws-note">Rebuild with compressed object streams to reduce file size.</p>
         <button type="button" class="ws-list-btn" id="compressBtn">
@@ -182,7 +186,7 @@
         </button>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="protect">
         <h4>Protect PDF</h4>
         <p class="ws-note">Encrypt with AES-256 and set an open password.</p>
         <button type="button" class="ws-list-btn" id="protectBtn">
@@ -191,20 +195,22 @@
         </button>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="pdf-jpg">
         <h4>Convert PDF</h4>
         <p class="ws-note">Everything runs in your browser. No upload needed.</p>
         <button type="button" class="ws-list-btn" id="convertImagesBtn">
           <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 17l5-5 4 4 3-3 3 3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
           PDF to images (PNG / JPG)
         </button>
+      </div>
+      <div class="ws-panel-block" data-scope="jpg-pdf">
         <button type="button" class="ws-list-btn" id="convertPdfBtn">
           <svg viewBox="0 0 24 24"><path d="M13 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 4h6v6M20 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Images to PDF (from files)
         </button>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="info">
         <h4>Document info</h4>
         <ul class="ws-info">
           <li><span>Pages</span><b id="infoPages">0</b></li>
@@ -214,7 +220,7 @@
         </ul>
       </div>
 
-      <div class="ws-panel-block">
+      <div class="ws-panel-block" data-scope="files">
         <h4>Files in workspace</h4>
         <ul class="ws-files" id="wsFileList"></ul>
       </div>
