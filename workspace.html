@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Workspace - Docu-Magic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="workspace.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2329b6e8'/%3E%3Cpath d='M11 8h7l4 4v12a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E" />
+</head>
+<body class="ws-body">
+
+<header class="ws-topbar">
+  <div class="ws-topbar-left">
+    <a href="index.html" class="ws-back" aria-label="Back to home">
+      <svg viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </a>
+    <span class="ws-logo">
+      <svg viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="4" y="3" width="32" height="34" rx="6" fill="#2bb3e6"/>
+        <path d="M13 10h10l5 5v16a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2z" fill="#fff"/>
+        <path d="M23 10v5h5" fill="#bfe9f8"/>
+        <path d="M26 30l6-6 3 3-6 6-4 1z" fill="#ff9f43"/>
+      </svg>
+    </span>
+    <div class="ws-file">
+      <input type="text" id="fileName" value="document.pdf" aria-label="File name" />
+      <span class="ws-file-meta" id="fileMeta">0 pages - 0 KB</span>
+    </div>
+  </div>
+
+  <div class="ws-topbar-center">
+    <div class="ws-toolgroup">
+      <button type="button" class="ws-icon-btn" id="zoomOut" title="Zoom out">
+        <svg viewBox="0 0 24 24"><path d="M6 12h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+      <span class="ws-zoom-label" id="zoomLabel">100%</span>
+      <button type="button" class="ws-icon-btn" id="zoomIn" title="Zoom in">
+        <svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="ws-toolgroup">
+      <button type="button" class="ws-icon-btn" id="prevPage" title="Previous page">
+        <svg viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="ws-page-indicator"><input type="text" id="pageNumber" value="1" aria-label="Page number" /> / <b id="pageTotal">0</b></span>
+      <button type="button" class="ws-icon-btn" id="nextPage" title="Next page">
+        <svg viewBox="0 0 24 24"><path d="M9.5 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+    <div class="ws-toolgroup">
+      <button type="button" class="ws-icon-btn" id="undoBtn" title="Undo">
+        <svg viewBox="0 0 24 24"><path d="M8 8H16a4 4 0 1 1 0 8h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5L8 8l3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <button type="button" class="ws-icon-btn" id="redoBtn" title="Redo">
+        <svg viewBox="0 0 24 24"><path d="M16 8H8a4 4 0 1 0 0 8h5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 5l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="ws-topbar-right">
+    <span class="ws-saved" id="savedBadge">All changes saved</span>
+    <button type="button" class="ws-btn ws-btn-ghost" id="addMoreBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+      <span>Add file</span>
+    </button>
+    <button type="button" class="ws-btn ws-btn-primary" id="downloadBtn">
+      <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Download</span>
+    </button>
+  </div>
+</header>
+
+<div class="ws-layout">
+
+  <aside class="ws-rail">
+    <div class="ws-rail-head">
+      <span>Pages</span>
+      <button type="button" class="ws-mini-btn" id="selectAllPages" title="Select all">Select all</button>
+    </div>
+    <div class="ws-thumbs" id="thumbs"></div>
+    <div class="ws-rail-foot" id="selectionInfo">No page selected</div>
+  </aside>
+
+  <section class="ws-canvas-wrap">
+    <div class="ws-canvas-toolbar">
+      <button type="button" class="ws-chip is-active" data-mode="select" id="modeSelect">
+        <svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-2 6z" fill="currentColor"/></svg>
+        Select
+      </button>
+      <button type="button" class="ws-chip" data-mode="text">
+        <svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Text
+      </button>
+      <button type="button" class="ws-chip" data-mode="image">
+        <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 17l5-5 4 4 3-3 3 3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        Image
+      </button>
+      <button type="button" class="ws-chip" data-mode="sign">
+        <svg viewBox="0 0 24 24"><path d="M4 18c4-8 6 3 10-4 2-4 4-2 6-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        Sign
+      </button>
+      <button type="button" class="ws-chip" data-mode="erase">
+        <svg viewBox="0 0 24 24"><path d="M8 19h11M6 15l6-6 5 5-5 5H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        Erase
+      </button>
+    </div>
+
+    <div class="ws-canvas" id="canvasScroll">
+      <div class="ws-page-stack" id="pageStack"></div>
+    </div>
+
+    <div class="ws-hint" id="dropHint">
+      <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5l5 5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Drop PDF or image files here
+    </div>
+  </section>
+
+  <aside class="ws-panel">
+    <div class="ws-tabs">
+      <button type="button" class="ws-tab is-active" data-tab="page">Page</button>
+      <button type="button" class="ws-tab" data-tab="file">Tools</button>
+    </div>
+
+    <div class="ws-tab-body is-active" data-body="page">
+      <div class="ws-panel-block">
+        <h4>Rotate</h4>
+        <div class="ws-btn-row">
+          <button type="button" class="ws-square" data-rotate="-90" title="Rotate left">
+            <svg viewBox="0 0 24 24"><path d="M8 7H15a5 5 0 1 1 0 10H9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 4L8 7l3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="ws-square" data-rotate="90" title="Rotate right">
+            <svg viewBox="0 0 24 24"><path d="M16 7H9a5 5 0 1 0 0 10h6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M13 4l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Arrange</h4>
+        <div class="ws-btn-row">
+          <button type="button" class="ws-square" id="moveUp" title="Move earlier">
+            <svg viewBox="0 0 24 24"><path d="M12 19V6m0 0l-5 5m5-5l5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button type="button" class="ws-square" id="moveDown" title="Move later">
+            <svg viewBox="0 0 24 24"><path d="M12 5v13m0 0l-5-5m5 5l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Page actions</h4>
+        <button type="button" class="ws-list-btn" id="extractBtn">
+          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Extract selected
+        </button>
+        <button type="button" class="ws-list-btn" id="splitBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 3v18M7 8l-3 4 3 4M17 8l3 4-3 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Split after selection
+        </button>
+        <button type="button" class="ws-list-btn is-danger" id="deleteBtn">
+          <svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M6 7l1 12h10l1-12M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Delete selected
+        </button>
+      </div>
+    </div>
+
+    <div class="ws-tab-body" data-body="file">
+      <div class="ws-panel-block">
+        <h4>Merge all pages</h4>
+        <p class="ws-note">All pages and files in this workspace are combined into one PDF on export.</p>
+        <button type="button" class="ws-btn ws-btn-primary ws-block" id="mergeBtn">Merge &amp; download</button>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Compress PDF</h4>
+        <p class="ws-note">Rebuild with compressed object streams to reduce file size.</p>
+        <button type="button" class="ws-list-btn" id="compressBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 3v6m0 0l-3-3m3 3l3-3M12 21v-6m0 0l-3 3m3-3l3 3M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Compress &amp; download
+        </button>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Protect PDF</h4>
+        <p class="ws-note">Encrypt with AES-256 and set an open password.</p>
+        <button type="button" class="ws-list-btn" id="protectBtn">
+          <svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="15.5" r="1.6" fill="currentColor"/></svg>
+          Set password
+        </button>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Convert PDF</h4>
+        <p class="ws-note">Everything runs in your browser. No upload needed.</p>
+        <button type="button" class="ws-list-btn" id="convertImagesBtn">
+          <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 17l5-5 4 4 3-3 3 3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          PDF to images (PNG / JPG)
+        </button>
+        <button type="button" class="ws-list-btn" id="convertPdfBtn">
+          <svg viewBox="0 0 24 24"><path d="M13 4H7a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 4h6v6M20 4l-8 8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Images to PDF (from files)
+        </button>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Document info</h4>
+        <ul class="ws-info">
+          <li><span>Pages</span><b id="infoPages">0</b></li>
+          <li><span>Size</span><b id="infoSize">0 KB</b></li>
+          <li><span>Rotation</span><b id="infoRotation">0 deg</b></li>
+          <li><span>Annotations</span><b id="infoAnnots">0</b></li>
+        </ul>
+      </div>
+
+      <div class="ws-panel-block">
+        <h4>Files in workspace</h4>
+        <ul class="ws-files" id="wsFileList"></ul>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<footer class="ws-statusbar">
+  <span id="statusText">Ready</span>
+  <div class="ws-status-right">
+    <span class="ws-dot"></span>
+    <span id="statusMode">Select mode</span>
+  </div>
+</footer>
+
+<!-- ============ MODALS ============ -->
+<div class="ws-modal" id="modal" hidden>
+  <div class="ws-modal-card">
+    <div class="ws-modal-head">
+      <h3 id="modalTitle">Title</h3>
+      <button type="button" class="ws-modal-close" id="modalClose" aria-label="Close">
+        <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="ws-modal-body" id="modalBody"></div>
+    <div class="ws-modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<input type="file" id="wsFileInput" accept="application/pdf,image/png,image/jpeg,.txt,.docx,.html,text/plain" multiple hidden />
+<input type="file" id="wsImageInput" accept="image/png,image/jpeg" hidden />
+
+<script src="vendor/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="workspace.js"></script>
+</body>
+</html>

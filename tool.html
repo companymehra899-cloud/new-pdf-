@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tool - Docu-Magic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2329b6e8'/%3E%3Cpath d='M11 8h7l4 4v12a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+<div class="bg-decor" aria-hidden="true">
+  <svg class="blob blob-1" viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" /></svg>
+  <svg class="blob blob-2" viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" /></svg>
+  <svg class="blob blob-3" viewBox="0 0 200 200"><circle cx="100" cy="100" r="90" /></svg>
+  <div class="wave"></div>
+</div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 40 40" aria-hidden="true">
+          <rect x="4" y="3" width="32" height="34" rx="6" fill="#2bb3e6"/>
+          <path d="M13 10h10l5 5v16a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2z" fill="#ffffff"/>
+          <path d="M23 10v5h5" fill="#bfe9f8"/>
+          <path d="M26 30l6-6 3 3-6 6-4 1z" fill="#ff9f43"/>
+        </svg>
+      </span>
+      <span class="brand-name">DOCU-MAGIC</span>
+    </a>
+
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-item has-menu">
+        <button type="button" class="nav-link">Edit <svg class="caret" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <div class="dropdown">
+          <a href="tool.html?id=edit">Edit Text</a>
+          <a href="tool.html?id=image">Add Images</a>
+          <a href="tool.html?id=annotate">Annotate</a>
+          <a href="tool.html?id=watermark">Watermark</a>
+        </div>
+      </div>
+      <div class="nav-item has-menu">
+        <button type="button" class="nav-link">Convert <svg class="caret" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <div class="dropdown">
+          <a href="tool.html?id=pdf-word">PDF to Word</a>
+          <a href="tool.html?id=pdf-jpg">PDF to JPG</a>
+          <a href="tool.html?id=jpg-pdf">JPG to PDF</a>
+          <a href="tool.html?id=word-pdf">Word to PDF</a>
+        </div>
+      </div>
+      <div class="nav-item has-menu">
+        <button type="button" class="nav-link">Organize <svg class="caret" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <div class="dropdown">
+          <a href="tool.html?id=merge">Merge PDF</a>
+          <a href="tool.html?id=split">Split PDF</a>
+          <a href="tool.html?id=rotate">Rotate PDF</a>
+          <a href="tool.html?id=compress">Compress PDF</a>
+        </div>
+      </div>
+      <div class="nav-item has-menu">
+        <button type="button" class="nav-link">Sign <svg class="caret" viewBox="0 0 12 8"><path d="M1 1l5 5 5-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+        <div class="dropdown">
+          <a href="tool.html?id=sign">Sign Document</a>
+          <a href="tool.html?id=request-sign">Request Signature</a>
+          <a href="tool.html?id=protect">Protect PDF</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-gradient">All tools</a>
+      <button type="button" class="menu-toggle" aria-label="Toggle menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="tool-page">
+  <section class="hero">
+    <div class="hero-panel">
+      <p class="tool-kicker" id="toolKicker">Tool</p>
+      <h1 class="hero-title" id="toolHeading">UPLOAD FILE</h1>
+      <p class="tool-desc" id="toolDesc">Choose a file to continue.</p>
+
+      <div class="dropzone-wrap">
+        <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Upload files">
+          <svg class="sparkle sparkle-a" viewBox="0 0 24 24"><path d="M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7z" fill="#ffd166"/></svg>
+          <svg class="sparkle sparkle-b" viewBox="0 0 24 24"><path d="M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7z" fill="#ff9f9f"/></svg>
+          <svg class="sparkle sparkle-c" viewBox="0 0 24 24"><path d="M12 2l2.2 6.3L20 10l-5.8 1.7L12 18l-2.2-6.3L4 10l5.8-1.7z" fill="#8fd3ff"/></svg>
+
+          <div class="dropzone-inner">
+            <div class="mascot" aria-hidden="true">
+              <svg viewBox="0 0 170 200">
+                <ellipse cx="85" cy="186" rx="52" ry="9" fill="rgba(0,0,0,.08)"/>
+                <g transform="rotate(18 130 90)">
+                  <rect x="128" y="60" width="6" height="58" rx="3" fill="#8a5a2b"/>
+                  <path d="M131 46l4 10 11 2-8 7 2 11-9-6-9 6 2-11-8-7 11-2z" fill="#ffd166"/>
+                </g>
+                <path d="M48 128c0-22 16-34 37-34s37 12 37 34v30a10 10 0 0 1-10 10H58a10 10 0 0 1-10-10z" fill="#eaf4fb"/>
+                <path d="M48 128c0-22 16-34 37-34s37 12 37 34v6H48z" fill="#bfe4f6"/>
+                <rect x="50" y="52" width="70" height="60" rx="26" fill="#f2f8fc" stroke="#cfe6f4" stroke-width="3"/>
+                <rect x="60" y="70" width="50" height="26" rx="13" fill="#12303f"/>
+                <circle cx="75" cy="83" r="4.5" fill="#5fe3c0"/>
+                <circle cx="95" cy="83" r="4.5" fill="#5fe3c0"/>
+                <path d="M78 100q7 6 14 0" fill="none" stroke="#12303f" stroke-width="2.5" stroke-linecap="round"/>
+                <path d="M46 56c4-30 24-46 46-46s36 16 40 46z" fill="#2b7fd4"/>
+                <path d="M42 56h96a6 6 0 0 1 6 6v6H36v-6a6 6 0 0 1 6-6z" fill="#1f68b5"/>
+                <path d="M85 12l4 8 9 1-7 6 2 9-8-5-8 5 2-9-7-6 9-1z" fill="#ffd166"/>
+              </svg>
+            </div>
+            <div class="dropzone-copy">
+              <h2>DRAG &amp; DROP FILE</h2>
+              <p id="toolHint">OR CLICK TO UPLOAD</p>
+              <button type="button" class="btn btn-choose" id="chooseFile">CHOOSE FILE</button>
+              <input type="file" id="fileInput" multiple hidden />
+              <div class="file-list" id="fileList"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-left">
+    <span class="footer-brand">DOCU-MAGIC</span>
+  </div>
+  <nav class="footer-nav">
+    <a href="index.html">HOME</a>
+    <a href="#">SUPPORT</a>
+    <a href="#">LEGAL</a>
+  </nav>
+</footer>
+
+<script src="tools.js"></script>
+<script src="tool.js"></script>
+</body>
+</html>
