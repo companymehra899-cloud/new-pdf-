@@ -330,15 +330,23 @@
     }
 
     const copyForLib = bytes.slice(0);
-    const pdfJsDoc = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
     const libDoc = await PDFLib.PDFDocument.load(copyForLib, { ignoreEncryption: true });
+    let pdfJsDoc = null;
+    let pageCount = libDoc.getPageCount();
+    if (needsPreview() || needsThumbs()) {
+      pdfJsDoc = await pdfjsLib.getDocument({ data: bytes.slice(0) }).promise;
+      pageCount = pdfJsDoc.numPages;
+    }
 
     const fileId = state.sources.length;
     state.sources.push({ name, size, pdf: pdfJsDoc, lib: libDoc });
 
-    for (let i = 0; i < pdfJsDoc.numPages; i++) {
-      const pj = await pdfJsDoc.getPage(i + 1);
-      const srcRotation = ((((pj.rotate || 0) % 360) + 360) % 360);
+    for (let i = 0; i < pageCount; i++) {
+      let srcRotation = 0;
+      if (pdfJsDoc) {
+        const pj = await pdfJsDoc.getPage(i + 1);
+        srcRotation = ((((pj.rotate || 0) % 360) + 360) % 360);
+      }
       state.pages.push({
         fileId,
         sourceIndex: i,
@@ -464,6 +472,7 @@
 
   async function renderThumbs() {
     el.thumbs.innerHTML = "";
+    if (!needsThumbs()) return;
     for (let i = 0; i < state.pages.length; i++) {
       const thumb = document.createElement("div");
       thumb.className = "ws-thumb";
@@ -474,8 +483,54 @@
     }
   }
 
+  function renderFileWorkspace() {
+    el.pageStack.innerHTML = "";
+    if (!state.sources.length) {
+      renderEmptyState();
+      return;
+    }
+    const workspace = WORKSPACES[state.selectedTool];
+    const board = document.createElement("div");
+    board.className = "ws-file-board";
+
+    const title = document.createElement("h3");
+    title.textContent = workspace ? workspace.title : "Files ready";
+
+    const hint = document.createElement("p");
+    hint.className = "ws-board-hint";
+    hint.textContent = workspace ? workspace.hint : "Use the tools on the right to continue.";
+
+    const list = document.createElement("ul");
+    list.className = "ws-board-files";
+    state.sources.forEach((file, index) => {
+      const item = document.createElement("li");
+      const name = document.createElement("span");
+      name.className = "ws-board-name";
+      name.textContent = file.name;
+      const meta = document.createElement("span");
+      meta.className = "ws-board-meta";
+      const pages = state.pages.filter((page) => page.fileId === index).length;
+      meta.textContent = pages + " page" + (pages === 1 ? "" : "s") + " · " + formatSize(file.size);
+      item.append(name, meta);
+      list.appendChild(item);
+    });
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "ws-btn ws-btn-ghost";
+    addBtn.textContent = "Add another file";
+    addBtn.addEventListener("click", () => el.fileInput.click());
+
+    board.append(title, hint, list, addBtn);
+    el.pageStack.appendChild(board);
+  }
+
   async function renderStack() {
     el.pageStack.innerHTML = "";
+    if (!needsPreview()) {
+      renderFileWorkspace();
+      return;
+    }
     if (!state.pages.length) {
       renderEmptyState();
       return;
@@ -526,7 +581,7 @@
       '<svg viewBox="0 0 120 120"><path d="M30 16h40l16 16v62a6 6 0 0 1-6 6H30a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6z" fill="#fff" stroke="#cfe6f4" stroke-width="3"/><path d="M70 16v16h16" fill="#e3f2fb"/><rect x="34" y="48" width="34" height="4" rx="2" fill="#d5e8f4"/><rect x="34" y="59" width="26" height="4" rx="2" fill="#d5e8f4"/><path d="M96 40l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#ffd166"/></svg>' +
       "</div>" +
       "<h3>Your workspace is empty</h3>" +
-      "<p>Add a PDF or image file to start editing.</p>";
+      "<p>" + emptyStateCopy() + "</p>";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "ws-btn ws-btn-primary";
@@ -1366,7 +1421,8 @@
   }
 
   function zoomBy(delta) {
-    state.zoom = Math.min(2.5, Math.max(0.3, Math.round((state.zoom + delta) * 10) / 10));
+    if (!needsPreview()) return;
+    state.zoom = Math.min(2.4, Math.max(0.4, +(state.zoom + delta).toFixed(2)));
     el.zoomLabel.textContent = Math.round(state.zoom * 100) + "%";
     renderStack();
     markSaved();
@@ -1410,6 +1466,47 @@
     "word-pdf": { title: "Word to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["info", "files"], tab: "file" },
   };
 
+  const PREVIEW_TOOLS = {
+    edit: true,
+    annotate: true,
+    watermark: true,
+    image: true,
+    sign: true,
+    "request-sign": true,
+    split: true,
+  };
+
+  const THUMB_TOOLS = {
+    edit: true,
+    annotate: true,
+    watermark: true,
+    image: true,
+    sign: true,
+    "request-sign": true,
+    rotate: true,
+    split: true,
+  };
+
+  function needsPreview() {
+    const key = state.selectedTool;
+    if (!key) return true;
+    return !!PREVIEW_TOOLS[key];
+  }
+
+  function needsThumbs() {
+    const key = state.selectedTool;
+    if (!key) return true;
+    return !!THUMB_TOOLS[key];
+  }
+
+  function emptyStateCopy() {
+    if (state.selectedTool === "merge") return "Add 2 or more PDF files to merge them.";
+    if (state.selectedTool === "rotate") return "Add a PDF, then select pages from the left to rotate.";
+    if (state.selectedTool === "compress") return "Add a PDF, then compress and download it.";
+    if (!needsPreview()) return "Add a PDF file to continue.";
+    return "Add a PDF or image file to start editing.";
+  }
+
   function readStoredTool() {
     try {
       return sessionStorage.getItem("dm-selected-tool") || "";
@@ -1435,6 +1532,8 @@
     storeSelectedTool(key);
     if (key) document.documentElement.setAttribute("data-tool", key);
     else document.documentElement.removeAttribute("data-tool");
+    document.documentElement.setAttribute("data-preview", needsPreview() ? "on" : "off");
+    document.documentElement.setAttribute("data-thumbs", needsThumbs() ? "on" : "off");
 
     const workspace = WORKSPACES[key];
     const titleEl = document.getElementById("workspaceTitle");
@@ -1685,13 +1784,13 @@
     bindPanel();
     bindUpload();
     bindKeyboard();
-    updateMeta();
-    renderStack();
     updateHistoryButtons();
 
     const pending = await readPending();
     const incomingTool = resolveSelectedTool(pending && pending.tool);
     applySelectedTool(incomingTool, true);
+    updateMeta();
+    renderStack();
 
     if (incomingTool && !new URLSearchParams(window.location.search).get("tool")) {
       history.replaceState(null, "", "workspace.html?tool=" + encodeURIComponent(incomingTool));
@@ -1716,8 +1815,6 @@
       }
       clearPending();
     }
-
-    applySelectedTool(incomingTool, true);
   }
 
   if (!pdfjsLib || !PDFLib.PDFDocument) {
