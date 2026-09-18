@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=13" />
+<link rel="stylesheet" href="workspace.css?v=14" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2329b6e8'/%3E%3Cpath d='M11 8h7l4 4v12a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -230,10 +230,14 @@
       </div>
       <div class="ws-panel-block" data-scope="sign">
         <h4>Sign document</h4>
-        <p class="ws-note">Draw a signature, then click the page to place it.</p>
+        <p class="ws-note">Upload a PDF or JPG, then draw or drop a signature onto any page.</p>
         <button type="button" class="ws-list-btn" id="placeSignBtn">
           <svg viewBox="0 0 24 24"><path d="M4 18c4-8 6 3 10-4 2-4 4-2 6-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
           Draw signature
+        </button>
+        <button type="button" class="ws-list-btn" id="uploadSignBtn">
+          <svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 16l3-3 3 3 4-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Upload signature JPG
         </button>
       </div>
       <div class="ws-panel-block" data-scope="watermark">
@@ -333,11 +337,17 @@
   <span class="ws-lightbox-label" id="lightboxLabel">Page 1</span>
 </div>
 
+<div class="ws-sign-float" id="signFloat" hidden>
+  <span>Drag signature onto a page</span>
+  <img id="signFloatImg" alt="Signature" />
+</div>
+
 <input type="file" id="wsFileInput" accept="application/pdf,image/png,image/jpeg" multiple hidden />
 <input type="file" id="wsImageInput" accept="image/png,image/jpeg" hidden />
+<input type="file" id="wsSignInput" accept="image/png,image/jpeg,.jpg,.jpeg,.png" hidden />
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=13"></script>
+<script src="workspace.js?v=14"></script>
 </body>
 </html>

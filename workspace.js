@@ -43,6 +43,9 @@
     dropHint: document.getElementById("dropHint"),
     fileInput: document.getElementById("wsFileInput"),
     imageInput: document.getElementById("wsImageInput"),
+    signInput: document.getElementById("wsSignInput"),
+    signFloat: document.getElementById("signFloat"),
+    signFloatImg: document.getElementById("signFloatImg"),
     modal: document.getElementById("modal"),
     modalTitle: document.getElementById("modalTitle"),
     modalBody: document.getElementById("modalBody"),
@@ -331,7 +334,40 @@
       node.style.top = py + "px";
       node.appendChild(img);
     }
+    if (a.type === "sign" || a.type === "image") enableAnnoDrag(node, a);
     return node;
+  }
+
+  function enableAnnoDrag(node, anno) {
+    node.style.cursor = "grab";
+    node.addEventListener("pointerdown", (e) => {
+      if (state.tool === "erase") return;
+      e.preventDefault();
+      e.stopPropagation();
+      const layer = node.parentElement;
+      if (!layer) return;
+      pushHistory();
+      node.style.cursor = "grabbing";
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startNx = anno.nx;
+      const startNy = anno.ny;
+      const rect = layer.getBoundingClientRect();
+      function move(ev) {
+        anno.nx = Math.min(0.92, Math.max(0, startNx + (ev.clientX - startX) / rect.width));
+        anno.ny = Math.min(0.92, Math.max(0, startNy + (ev.clientY - startY) / rect.height));
+        node.style.left = anno.nx * rect.width + "px";
+        node.style.top = anno.ny * rect.height + "px";
+      }
+      function up() {
+        node.style.cursor = "grab";
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        markSaved();
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
   }
 
   async function renderAnnotationLayer(entry, pageNode) {
@@ -1069,28 +1105,105 @@
     }
 
     if (state.tool === "sign" && state.pendingSignature) {
-      const rect = layer.getBoundingClientRect();
-      const nx = (e.clientX - rect.left) / rect.width;
-      const ny = (e.clientY - rect.top) / rect.height;
-      const sig = state.pendingSignature;
-      pushHistory();
-      entry.annotations.push({
-        id: annoSeq++,
-        type: "sign",
-        nx,
-        ny,
-        wN: 0.34,
-        hN: 0.34 * (sig.height / sig.width) * (rect.width / rect.height),
-        dataUrl: sig.dataUrl,
-      });
-      state.pendingSignature = null;
-      setTool("select");
-      await renderAnnotationLayer(entry, wrap);
-      await renderThumb(index, el.thumbs.querySelectorAll(".ws-thumb")[index]);
-      updateMeta();
-      markSaved();
-      toast("Signature placed");
+      await placeSignatureOnPage(index, wrap, e.clientX, e.clientY);
     }
+  }
+
+  async function placeSignatureOnPage(index, wrap, clientX, clientY) {
+    const entry = state.pages[index];
+    const layer = wrap.querySelector(".ws-anno-layer");
+    const sig = state.pendingSignature;
+    if (!entry || !layer || !sig) return;
+    const rect = layer.getBoundingClientRect();
+    const nx = Math.min(0.92, Math.max(0, (clientX - rect.left) / rect.width - 0.17));
+    const ny = Math.min(0.92, Math.max(0, (clientY - rect.top) / rect.height - 0.06));
+    pushHistory();
+    entry.annotations.push({
+      id: annoSeq++,
+      type: "sign",
+      nx,
+      ny,
+      wN: 0.34,
+      hN: 0.34 * (sig.height / Math.max(1, sig.width)) * (rect.width / Math.max(1, rect.height)),
+      dataUrl: sig.dataUrl,
+    });
+    await renderAnnotationLayer(entry, wrap);
+    await renderThumb(index, el.thumbs.querySelectorAll(".ws-thumb")[index]);
+    updateMeta();
+    markSaved();
+    toast("Signature placed — drag it to move");
+    status("Signature placed on page " + (index + 1));
+  }
+
+  function armPendingSignature(sig) {
+    state.pendingSignature = sig;
+    state.tool = "sign";
+    document.querySelectorAll(".ws-chip").forEach((c) => {
+      c.classList.toggle("is-active", c.dataset.mode === "sign");
+    });
+    el.statusMode.textContent = "Sign mode";
+    showSignFloat(sig);
+    toast("Drag the signature onto any page");
+    status("Drag the signature onto any page");
+  }
+
+  function showSignFloat(sig) {
+    if (!el.signFloat || !el.signFloatImg) return;
+    el.signFloatImg.src = sig.dataUrl;
+    el.signFloat.hidden = false;
+    el.signFloat.classList.add("is-ready");
+  }
+
+  function hideSignFloat() {
+    if (!el.signFloat) return;
+    el.signFloat.hidden = true;
+    el.signFloat.classList.remove("is-ready", "is-dragging");
+    el.signFloat.style.left = "";
+    el.signFloat.style.top = "";
+  }
+
+  function bindSignFloat() {
+    const floatEl = el.signFloat;
+    if (!floatEl) return;
+    floatEl.addEventListener("pointerdown", (e) => {
+      if (!state.pendingSignature) return;
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      const rect = floatEl.getBoundingClientRect();
+      const offsetX = e.clientX - rect.left;
+      const offsetY = e.clientY - rect.top;
+      floatEl.classList.add("is-dragging");
+      floatEl.style.right = "auto";
+      floatEl.style.bottom = "auto";
+      floatEl.style.left = rect.left + "px";
+      floatEl.style.top = rect.top + "px";
+
+      function move(ev) {
+        floatEl.style.left = ev.clientX - offsetX + "px";
+        floatEl.style.top = ev.clientY - offsetY + "px";
+      }
+
+      function up(ev) {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        floatEl.classList.remove("is-dragging");
+        floatEl.style.visibility = "hidden";
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        floatEl.style.visibility = "";
+        const wrap = under && under.closest(".ws-page");
+        if (wrap && wrap.dataset.index != null) {
+          const index = parseInt(wrap.dataset.index, 10);
+          placeSignatureOnPage(index, wrap, ev.clientX, ev.clientY);
+        }
+        floatEl.style.left = "";
+        floatEl.style.top = "";
+        floatEl.style.right = "";
+        floatEl.style.bottom = "";
+      }
+
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
   }
 
   function askText(callback) {
@@ -1163,6 +1276,29 @@
     img.src = dataUrl;
   });
 
+  if (el.signInput) {
+    el.signInput.addEventListener("change", async () => {
+      const file = el.signInput.files[0];
+      el.signInput.value = "";
+      if (!file) return;
+      if (!isImageFile(file)) {
+        toast("Use a JPG or PNG signature", true);
+        return;
+      }
+      const dataUrl = await readAsDataURL(file);
+      const img = new Image();
+      img.onload = () => {
+        armPendingSignature({
+          dataUrl,
+          width: img.width,
+          height: img.height,
+        });
+      };
+      img.onerror = () => toast("Could not read that signature", true);
+      img.src = dataUrl;
+    });
+  }
+
   function openSignaturePad() {
     const canvas = document.createElement("canvas");
     canvas.className = "ws-sig-pad";
@@ -1200,14 +1336,12 @@
               toast("Draw a signature first", true);
               return;
             }
-            state.pendingSignature = {
+            closeModal();
+            armPendingSignature({
               dataUrl: canvas.toDataURL("image/png"),
               width: canvas.width,
               height: canvas.height,
-            };
-            closeModal();
-            toast("Click on a page to place the signature");
-            status("Click a page to place the signature");
+            });
           })
         );
       }
@@ -1792,6 +1926,7 @@
   }
 
   function setTool(mode, silent) {
+    if (mode !== "sign") hideSignFloat();
     state.tool = mode;
     document.querySelectorAll(".ws-chip").forEach((c) => {
       c.classList.toggle("is-active", c.dataset.mode === mode);
@@ -1809,7 +1944,7 @@
     edit: { title: "Edit PDF", hint: "Add or overlay text on pages.", chips: ["text", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
     watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
-    sign: { title: "Sign Document", hint: "Draw a signature and place it on a page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
+    sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
     rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page", action: "Rotate & download" },
     split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page", action: "Split PDF" },
     merge: { title: "Merge PDF", hint: "Drag pages to set the order, then merge into one PDF.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file", action: "Merge PDF" },
@@ -1990,6 +2125,13 @@
     if (placeImageBtn) placeImageBtn.addEventListener("click", () => setTool("image"));
     const placeSignBtn = document.getElementById("placeSignBtn");
     if (placeSignBtn) placeSignBtn.addEventListener("click", () => setTool("sign"));
+    const uploadSignBtn = document.getElementById("uploadSignBtn");
+    if (uploadSignBtn) {
+      uploadSignBtn.addEventListener("click", () => {
+        state.tool = "sign";
+        if (el.signInput) el.signInput.click();
+      });
+    }
     const placeWatermarkBtn = document.getElementById("placeWatermarkBtn");
     if (placeWatermarkBtn) placeWatermarkBtn.addEventListener("click", () => setTool("text", true));
 
@@ -2177,6 +2319,7 @@
     bindTopbar();
     bindPanel();
     bindUpload();
+    bindSignFloat();
     bindKeyboard();
     updateHistoryButtons();
 
