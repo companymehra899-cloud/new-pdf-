@@ -310,6 +310,37 @@ html[data-tool="word-pdf"] .ws-canvas-toolbar {
 .ws-page:hover { box-shadow: 0 14px 32px rgba(31, 41, 51, .2); }
 .ws-page.is-selected { border-color: var(--ws-teal); box-shadow: 0 0 0 5px rgba(43,179,230,.16), 0 14px 30px rgba(31,41,51,.18); }
 .ws-page canvas { display: block; border-radius: 5px; }
+
+html[data-layout="cards"] .ws-page-stack,
+.ws-page-stack.is-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  align-content: start;
+  align-items: start;
+  justify-items: center;
+  gap: 18px;
+  width: 100%;
+  padding: 18px 8px 40px;
+}
+html[data-layout="cards"] .ws-canvas {
+  padding: 8px 22px 80px;
+}
+.ws-page-card {
+  width: 100%;
+  max-width: 186px;
+  border-width: 2px;
+  box-shadow: 0 6px 16px rgba(31, 41, 51, .1);
+}
+.ws-page-card canvas {
+  width: 100%;
+  height: auto;
+}
+.ws-page-card .ws-page-badge {
+  font-size: 10.5px;
+  padding: 2px 7px;
+  bottom: 6px;
+  right: 6px;
+}
 .ws-page-badge {
   position: absolute;
   bottom: 10px; right: 10px;

@@ -474,10 +474,46 @@
     }
   }
 
+  function isPageCardTool() {
+    return ["merge", "split", "rotate", "compress"].indexOf(state.selectedTool) !== -1;
+  }
+
+  async function renderPageCards() {
+    el.pageStack.classList.add("is-cards");
+    for (let i = 0; i < state.pages.length; i++) {
+      const entry = state.pages[i];
+      const wrap = document.createElement("div");
+      wrap.className = "ws-page ws-page-card";
+      wrap.dataset.index = String(i);
+
+      const canvas = await renderPageCanvas(entry, 0.36);
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      wrap.appendChild(canvas);
+
+      const badge = document.createElement("span");
+      badge.className = "ws-page-badge";
+      badge.textContent = "Page " + (i + 1);
+      wrap.appendChild(badge);
+
+      wrap.addEventListener("click", (e) => {
+        selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
+      });
+
+      el.pageStack.appendChild(wrap);
+    }
+    applySelectionClasses();
+  }
+
   async function renderStack() {
     el.pageStack.innerHTML = "";
+    el.pageStack.classList.remove("is-cards");
     if (!state.pages.length) {
       renderEmptyState();
+      return;
+    }
+    if (isPageCardTool()) {
+      await renderPageCards();
       return;
     }
     const scale = BASE_SCALE * state.zoom;
@@ -1435,6 +1471,8 @@
     storeSelectedTool(key);
     if (key) document.documentElement.setAttribute("data-tool", key);
     else document.documentElement.removeAttribute("data-tool");
+    if (isPageCardTool()) document.documentElement.setAttribute("data-layout", "cards");
+    else document.documentElement.removeAttribute("data-layout");
 
     const workspace = WORKSPACES[key];
     const titleEl = document.getElementById("workspaceTitle");
