@@ -475,7 +475,113 @@
   }
 
   function isPageCardTool() {
-    return ["merge", "split", "rotate", "compress"].indexOf(state.selectedTool) !== -1;
+    return ["split", "rotate", "compress"].indexOf(state.selectedTool) !== -1;
+  }
+
+  function isFileCardTool() {
+    return state.selectedTool === "merge";
+  }
+
+  function orderedFileIds() {
+    const ids = [];
+    state.pages.forEach((page) => {
+      if (ids.indexOf(page.fileId) === -1) ids.push(page.fileId);
+    });
+    state.sources.forEach((_, i) => {
+      if (ids.indexOf(i) === -1) ids.push(i);
+    });
+    return ids;
+  }
+
+  function bindCardDrag(node, payload, onDrop) {
+    node.draggable = true;
+    node.addEventListener("dragstart", (e) => {
+      node.classList.add("is-dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/plain", payload);
+    });
+    node.addEventListener("dragend", () => {
+      node.classList.remove("is-dragging");
+      document.querySelectorAll(".is-drop-target").forEach((n) => n.classList.remove("is-drop-target"));
+    });
+    node.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      node.classList.add("is-drop-target");
+    });
+    node.addEventListener("dragleave", () => node.classList.remove("is-drop-target"));
+    node.addEventListener("drop", (e) => {
+      e.preventDefault();
+      node.classList.remove("is-drop-target");
+      onDrop(e.dataTransfer.getData("text/plain"));
+    });
+  }
+
+  function movePageTo(fromIndex, toIndex) {
+    fromIndex = Number(fromIndex);
+    toIndex = Number(toIndex);
+    if (fromIndex === toIndex || fromIndex < 0 || toIndex < 0) return;
+    pushHistory();
+    const item = state.pages.splice(fromIndex, 1)[0];
+    if (fromIndex < toIndex) toIndex -= 1;
+    state.pages.splice(toIndex, 0, item);
+    state.selected = new Set([toIndex]);
+    rerender("all");
+    markSaved();
+  }
+
+  function moveFileTo(fromId, toId) {
+    fromId = Number(fromId);
+    toId = Number(toId);
+    if (fromId === toId) return;
+    pushHistory();
+    const moving = state.pages.filter((page) => page.fileId === fromId);
+    const remaining = state.pages.filter((page) => page.fileId !== fromId);
+    let insertAt = remaining.findIndex((page) => page.fileId === toId);
+    if (insertAt < 0) insertAt = remaining.length;
+    remaining.splice(insertAt, 0, ...moving);
+    state.pages = remaining;
+    rerender("all");
+    markSaved();
+  }
+
+  async function renderFileCards() {
+    el.pageStack.classList.add("is-cards");
+    const ids = orderedFileIds();
+    for (let n = 0; n < ids.length; n++) {
+      const fileId = ids[n];
+      const file = state.sources[fileId];
+      if (!file) continue;
+      const firstPage = state.pages.find((page) => page.fileId === fileId);
+      const wrap = document.createElement("div");
+      wrap.className = "ws-page ws-page-card ws-file-card";
+      wrap.dataset.fileId = String(fileId);
+
+      if (firstPage) {
+        const canvas = await renderPageCanvas(firstPage, 0.36);
+        canvas.style.width = "100%";
+        canvas.style.height = "auto";
+        wrap.appendChild(canvas);
+      }
+
+      const badge = document.createElement("span");
+      badge.className = "ws-page-badge";
+      badge.textContent = "PDF";
+      wrap.appendChild(badge);
+
+      const caption = document.createElement("span");
+      caption.className = "ws-card-caption";
+      caption.textContent = file.name;
+      wrap.appendChild(caption);
+
+      wrap.addEventListener("click", () => {
+        const first = state.pages.findIndex((page) => page.fileId === fileId);
+        if (first >= 0) selectPage(first, false);
+      });
+      bindCardDrag(wrap, String(fileId), (from) => moveFileTo(from, fileId));
+      el.pageStack.appendChild(wrap);
+    }
+    applySelectionClasses();
   }
 
   async function renderPageCards() {
@@ -499,7 +605,7 @@
       wrap.addEventListener("click", (e) => {
         selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
       });
-
+      bindCardDrag(wrap, String(i), (from) => movePageTo(from, i));
       el.pageStack.appendChild(wrap);
     }
     applySelectionClasses();
@@ -510,6 +616,10 @@
     el.pageStack.classList.remove("is-cards");
     if (!state.pages.length) {
       renderEmptyState();
+      return;
+    }
+    if (isFileCardTool()) {
+      await renderFileCards();
       return;
     }
     if (isPageCardTool()) {
@@ -1555,8 +1665,10 @@
     });
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
-    document.getElementById("downloadBtn").addEventListener("click", () => exportPdf());
-    document.getElementById("addMoreBtn").addEventListener("click", () => el.fileInput.click());
+    const downloadBtn = document.getElementById("downloadBtn");
+    if (downloadBtn) downloadBtn.addEventListener("click", () => exportPdf());
+    const addMoreBtn = document.getElementById("addMoreBtn");
+    if (addMoreBtn) addMoreBtn.addEventListener("click", () => el.fileInput.click());
     el.fileName.addEventListener("input", markSaved);
   }
 
