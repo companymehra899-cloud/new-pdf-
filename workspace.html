@@ -23,7 +23,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=11" />
+<link rel="stylesheet" href="workspace.css?v=12" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2329b6e8'/%3E%3Cpath d='M11 8h7l4 4v12a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -57,7 +57,7 @@
         <svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
       </button>
     </div>
-    <div class="ws-toolgroup">
+    <div class="ws-toolgroup" id="pageNavGroup">
       <button type="button" class="ws-icon-btn" id="prevPage" title="Previous page">
         <svg viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
@@ -78,6 +78,8 @@
 
   <div class="ws-topbar-right">
     <span class="ws-saved" id="savedBadge">All changes saved</span>
+    <button type="button" class="ws-btn ws-btn-ghost" id="addMoreBtn">Add files</button>
+    <button type="button" class="ws-btn ws-btn-primary" id="downloadBtn">Download</button>
   </div>
 </header>
 
@@ -120,6 +122,11 @@
       <div class="ws-page-stack" id="pageStack"></div>
     </div>
 
+    <div class="ws-action-dock" id="actionDock" hidden>
+      <button type="button" class="ws-btn ws-btn-ghost" id="dockAddBtn">Add PDF files</button>
+      <button type="button" class="ws-btn ws-btn-primary" id="primaryActionBtn">Merge PDF</button>
+    </div>
+
     <div class="ws-hint" id="dropHint">
       <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5l5 5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       Drop PDF or image files here
@@ -138,7 +145,8 @@
 
     <div class="ws-tab-body is-active" data-body="page">
       <div class="ws-panel-block" data-scope="rotate">
-        <h4>Rotate</h4>
+        <h4>Rotate PDF</h4>
+        <p class="ws-note">Select a PDF in the center, then rotate every page in that file.</p>
         <div class="ws-btn-row">
           <button type="button" class="ws-square" data-rotate="-90" title="Rotate left">
             <svg viewBox="0 0 24 24"><path d="M8 7H15a5 5 0 1 1 0 10H9" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 4L8 7l3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -170,10 +178,14 @@
       </div>
       <div class="ws-panel-block" data-scope="split">
         <h4>Split PDF</h4>
-        <p class="ws-note">Select a page, then split the document after that page.</p>
+        <p class="ws-note">Select one PDF in the center, then split it after a page number.</p>
+        <label class="ws-field">
+          <span>Split after page</span>
+          <input class="ws-input" id="splitAfterPage" type="number" min="1" value="1" />
+        </label>
         <button type="button" class="ws-list-btn" id="splitBtn">
           <svg viewBox="0 0 24 24"><path d="M12 3v18M7 8l-3 4 3 4M17 8l3 4-3 4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Split after selection
+          Split PDF
         </button>
       </div>
       <div class="ws-panel-block" data-scope="delete">
@@ -218,8 +230,8 @@
         </button>
       </div>
       <div class="ws-panel-block" data-scope="merge">
-        <h4>Merge all pages</h4>
-        <p class="ws-note">All pages and files in this workspace are combined into one PDF on export.</p>
+        <h4>Merge PDFs</h4>
+        <p class="ws-note">Drag cards in the center to set the order, then merge every PDF into one file.</p>
         <button type="button" class="ws-btn ws-btn-primary ws-block" id="mergeBtn">Merge &amp; download</button>
       </div>
 
@@ -303,6 +315,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=11"></script>
+<script src="workspace.js?v=12"></script>
 </body>
 </html>

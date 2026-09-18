@@ -213,6 +213,10 @@ svg { display: block; }
   padding: 2px 6px;
   border-radius: 999px;
 }
+.ws-file-card .ws-thumb-rot {
+  top: 8px;
+  right: 32px;
+}
 .ws-rail-foot {
   border-top: 1px solid var(--ws-line);
   padding: 10px 14px;
@@ -285,48 +289,66 @@ html[data-tool="pdf-word"] .ws-canvas-toolbar {
 .ws-canvas {
   flex: 1;
   overflow: auto;
-  padding: 6px 26px 90px;
+  padding: 24px 32px 90px;
   scroll-behavior: smooth;
+  background:
+    radial-gradient(90% 55% at 50% 0%, #f8fcff 0%, #e6f0f7 100%);
 }
 .ws-page-stack {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: 28px;
   min-height: 100%;
+  padding-top: 8px;
 }
 .ws-page {
   position: relative;
   background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 10px 26px rgba(31, 41, 51, .14);
+  border-radius: 10px;
+  box-shadow: 0 16px 36px rgba(31, 41, 51, .16);
   border: 3px solid transparent;
   transition: border-color .18s, box-shadow .18s;
   cursor: pointer;
 }
-.ws-page:hover { box-shadow: 0 14px 32px rgba(31, 41, 51, .2); }
+.ws-page:hover { box-shadow: 0 20px 40px rgba(31, 41, 51, .2); }
 .ws-page.is-selected { border-color: var(--ws-teal); box-shadow: 0 0 0 5px rgba(43,179,230,.16), 0 14px 30px rgba(31,41,51,.18); }
-.ws-page canvas { display: block; border-radius: 5px; }
+.ws-page canvas { display: block; border-radius: 6px; }
 
 html[data-layout="cards"] .ws-page-stack,
 .ws-page-stack.is-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(188px, 1fr));
   align-content: start;
-  align-items: start;
-  justify-items: center;
-  gap: 18px;
+  align-items: stretch;
+  justify-items: stretch;
+  gap: 22px;
   width: 100%;
-  padding: 18px 8px 40px;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 12px 120px;
 }
 html[data-layout="cards"] .ws-canvas {
-  padding: 8px 22px 80px;
+  padding: 18px 28px 110px;
+  background:
+    radial-gradient(90% 70% at 50% 0%, #f8fcff 0%, #e8f3fb 100%);
+}
+html[data-layout="cards"] .ws-canvas-wrap {
+  background:
+    linear-gradient(180deg, #f4fafd 0%, #e6f1f8 100%);
+}
+html[data-layout="cards"] .ws-page {
+  cursor: grab;
 }
 .ws-page-card {
   width: 100%;
-  max-width: 186px;
+  max-width: none;
+  overflow: hidden;
   border-width: 2px;
-  box-shadow: 0 6px 16px rgba(31, 41, 51, .1);
+  border-color: #d7e6ef;
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(31, 41, 51, .1);
+  background: #fff;
 }
 .ws-page-card canvas {
   width: 100%;
@@ -335,11 +357,8 @@ html[data-layout="cards"] .ws-canvas {
 .ws-page-card .ws-page-badge {
   font-size: 10.5px;
   padding: 2px 7px;
-  bottom: 6px;
-  right: 6px;
-}
-.ws-page-card {
-  cursor: grab;
+  bottom: 52px;
+  right: 10px;
 }
 .ws-page-card.is-dragging {
   opacity: .45;
@@ -349,17 +368,98 @@ html[data-layout="cards"] .ws-canvas {
   border-color: var(--ws-teal);
   box-shadow: 0 0 0 4px rgba(43,179,230,.2);
 }
+.ws-card-cover {
+  background: #f4f8fb;
+  min-height: 168px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.ws-card-cover canvas {
+  display: block;
+}
+.ws-card-order {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 3;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #16323f;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+}
+.ws-file-card .ws-card-meta {
+  padding: 9px 10px 11px;
+  background: #fff;
+}
 .ws-file-card .ws-card-caption {
   display: block;
-  padding: 7px 8px 8px;
-  font-size: 11.5px;
+  font-size: 12.5px;
   font-weight: 800;
   color: #35525f;
-  text-align: center;
+  text-align: left;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.ws-card-size {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a8fa0;
+}
+.ws-card-actions {
+  display: flex;
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+.ws-card-act {
+  flex: 1;
+  height: 28px;
+  border-radius: 8px;
+  background: #eaf6fd;
+  color: #1786c4;
+  font-size: 12px;
+  font-weight: 800;
+}
+.ws-card-act:hover { background: #d7eefb; }
+.ws-add-card {
+  min-height: 240px;
+  border: 2px dashed #b7d7e8;
+  border-radius: 16px;
+  background: rgba(255,255,255,.72);
+  color: #4f6d80;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: border-color .16s, background .16s, color .16s;
+}
+.ws-add-card span {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #2bb3e6;
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+.ws-add-card b { font-size: 15px; }
+.ws-add-card em { font-style: normal; font-size: 12px; color: #7a8fa0; font-weight: 700; }
+.ws-add-card:hover { border-color: #2bb3e6; background: #fff; color: #1786c4; }
 .ws-card-remove {
   position: absolute;
   top: 6px;
@@ -376,6 +476,31 @@ html[data-layout="cards"] .ws-canvas {
 }
 .ws-card-remove svg { width: 12px; height: 12px; }
 .ws-card-remove:hover { background: #d6455f; }
+.ws-action-dock {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 18px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 16px 36px rgba(22,50,63,.18);
+}
+.ws-action-dock[hidden] { display: none; }
+html[data-layout="cards"] .ws-toolgroup#pageNavGroup { display: none; }
+.ws-thumb-file {
+  display: block;
+  margin-top: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #35525f;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .ws-page-badge {
   position: absolute;
   bottom: 10px; right: 10px;
@@ -390,6 +515,15 @@ html[data-layout="cards"] .ws-canvas {
   margin: 60px auto;
   text-align: center;
   color: #7a8fa0;
+  grid-column: 1 / -1;
+}
+html[data-layout="cards"] .ws-empty {
+  margin: 48px auto;
+  width: min(560px, 100%);
+  background: rgba(255,255,255,.82);
+  border: 2px dashed #b7d7e8;
+  border-radius: 24px;
+  padding: 48px 28px 36px;
 }
 .ws-empty h3 { font-family: "Baloo 2", sans-serif; font-size: 22px; color: #35525f; margin: 0 0 6px; }
 .ws-empty p { margin: 0 0 18px; font-weight: 700; font-size: 14.5px; }

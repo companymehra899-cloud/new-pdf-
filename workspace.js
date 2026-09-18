@@ -392,11 +392,33 @@
   }
 
   function isPageCardTool() {
-    return ["split", "rotate", "compress"].indexOf(state.selectedTool) !== -1;
+    return false;
   }
 
   function isFileCardTool() {
-    return state.selectedTool === "merge";
+    return isOrganizeTool();
+  }
+
+  function filePages(fileId) {
+    fileId = Number(fileId);
+    return state.pages
+      .map((page, i) => ({ page, i }))
+      .filter((item) => item.page.fileId === fileId);
+  }
+
+  function selectedFileIds() {
+    const ids = [];
+    state.pages.forEach((page, i) => {
+      if (state.selected.has(i) && ids.indexOf(page.fileId) === -1) ids.push(page.fileId);
+    });
+    return ids;
+  }
+
+  function selectedFileId() {
+    const ids = selectedFileIds();
+    if (ids.length) return ids[0];
+    const all = orderedFileIds();
+    return all.length ? all[0] : null;
   }
 
   function makeRemoveBtn(onClick) {
@@ -436,6 +458,11 @@
     indices.forEach((i) => state.selected.add(i));
     state.current = indices[0];
     el.pageNumber.value = String(indices[0] + 1);
+    const splitInput = document.getElementById("splitAfterPage");
+    if (splitInput) {
+      splitInput.max = String(Math.max(1, indices.length - 1));
+      if (parseInt(splitInput.value, 10) >= indices.length) splitInput.value = "1";
+    }
     applySelectionClasses();
     updateSelectionInfo();
     updateMeta();
@@ -446,6 +473,7 @@
     const ids = orderedFileIds();
     for (let n = 0; n < ids.length; n++) {
       const fileId = ids[n];
+      const file = state.sources[fileId];
       const first = state.pages.findIndex((page) => page.fileId === fileId);
       if (first < 0) continue;
       const thumb = document.createElement("div");
@@ -456,7 +484,11 @@
       el.thumbs.appendChild(thumb);
       await renderThumb(first, thumb);
       const num = thumb.querySelector(".ws-thumb-num");
-      if (num) num.textContent = "PDF";
+      if (num) num.textContent = String(n + 1);
+      const label = document.createElement("span");
+      label.className = "ws-thumb-file";
+      label.textContent = file ? file.name : "PDF";
+      thumb.appendChild(label);
     }
   }
 
@@ -481,9 +513,6 @@
     state.pages.forEach((page) => {
       if (ids.indexOf(page.fileId) === -1) ids.push(page.fileId);
     });
-    state.sources.forEach((_, i) => {
-      if (ids.indexOf(i) === -1) ids.push(i);
-    });
     return ids;
   }
 
@@ -507,7 +536,11 @@
     node.addEventListener("drop", (e) => {
       e.preventDefault();
       node.classList.remove("is-drop-target");
-      onDrop(e.dataTransfer.getData("text/plain"));
+      if (e.dataTransfer.files && e.dataTransfer.files.length) return;
+      e.stopPropagation();
+      const payload = e.dataTransfer.getData("text/plain");
+      if (!payload) return;
+      onDrop(payload);
     });
   }
 
@@ -546,27 +579,76 @@
       const fileId = ids[n];
       const file = state.sources[fileId];
       if (!file) continue;
-      const firstPage = state.pages.find((page) => page.fileId === fileId);
+      const pages = filePages(fileId);
+      const firstPage = pages.length ? pages[0].page : null;
       const wrap = document.createElement("div");
       wrap.className = "ws-page ws-page-card ws-file-card";
       wrap.dataset.fileId = String(fileId);
 
+      const cover = document.createElement("div");
+      cover.className = "ws-card-cover";
       if (firstPage) {
-        const canvas = await renderPageCanvas(firstPage, 0.36);
+        const canvas = await renderPageCanvas(firstPage, 0.42 * state.zoom);
         canvas.style.width = "100%";
         canvas.style.height = "auto";
-        wrap.appendChild(canvas);
+        cover.appendChild(canvas);
       }
+      wrap.appendChild(cover);
+
+      const order = document.createElement("span");
+      order.className = "ws-card-order";
+      order.textContent = String(n + 1);
+      wrap.appendChild(order);
 
       const badge = document.createElement("span");
       badge.className = "ws-page-badge";
-      badge.textContent = "PDF";
+      badge.textContent = pages.length + " page" + (pages.length === 1 ? "" : "s");
       wrap.appendChild(badge);
 
+      const meta = document.createElement("div");
+      meta.className = "ws-card-meta";
       const caption = document.createElement("span");
       caption.className = "ws-card-caption";
       caption.textContent = file.name;
-      wrap.appendChild(caption);
+      const size = document.createElement("span");
+      size.className = "ws-card-size";
+      size.textContent = formatSize(file.size);
+      meta.append(caption, size);
+      wrap.appendChild(meta);
+
+      if (state.selectedTool === "rotate") {
+        const rot = firstPage ? totalRotation(firstPage) : 0;
+        if (rot) {
+          const rotBadge = document.createElement("span");
+          rotBadge.className = "ws-thumb-rot";
+          rotBadge.textContent = rot + "\u00b0";
+          wrap.appendChild(rotBadge);
+        }
+        const row = document.createElement("div");
+        row.className = "ws-card-actions";
+        const left = document.createElement("button");
+        left.type = "button";
+        left.className = "ws-card-act";
+        left.title = "Rotate left";
+        left.textContent = "Left";
+        left.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectFile(fileId, false);
+          rotateSelection(-90);
+        });
+        const right = document.createElement("button");
+        right.type = "button";
+        right.className = "ws-card-act";
+        right.title = "Rotate right";
+        right.textContent = "Right";
+        right.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectFile(fileId, false);
+          rotateSelection(90);
+        });
+        row.append(left, right);
+        wrap.appendChild(row);
+      }
 
       wrap.appendChild(makeRemoveBtn(() => removeFile(fileId)));
       wrap.addEventListener("click", (e) => {
@@ -575,6 +657,13 @@
       bindCardDrag(wrap, String(fileId), (from) => moveFileTo(from, fileId));
       el.pageStack.appendChild(wrap);
     }
+
+    const adder = document.createElement("button");
+    adder.type = "button";
+    adder.className = "ws-add-card";
+    adder.innerHTML = "<span>+</span><b>Add PDF</b><em>or drop files here</em>";
+    adder.addEventListener("click", () => el.fileInput.click());
+    el.pageStack.appendChild(adder);
     applySelectionClasses();
   }
 
@@ -663,19 +752,23 @@
   }
 
   function renderEmptyState() {
+    el.pageStack.classList.remove("is-cards");
     const empty = document.createElement("div");
     empty.className = "ws-empty";
+    const copy = isOrganizeTool()
+      ? ["Drop PDF files here", "Keep whole PDFs in this workspace. Drag cards to reorder."]
+      : ["Your workspace is empty", "Add a PDF or image file to start editing."];
     empty.innerHTML =
       '<div class="ws-empty-art">' +
       '<svg viewBox="0 0 120 120"><path d="M30 16h40l16 16v62a6 6 0 0 1-6 6H30a6 6 0 0 1-6-6V22a6 6 0 0 1 6-6z" fill="#fff" stroke="#cfe6f4" stroke-width="3"/><path d="M70 16v16h16" fill="#e3f2fb"/><rect x="34" y="48" width="34" height="4" rx="2" fill="#d5e8f4"/><rect x="34" y="59" width="26" height="4" rx="2" fill="#d5e8f4"/><path d="M96 40l3 8 8 3-8 3-3 8-3-8-8-3 8-3z" fill="#ffd166"/></svg>' +
       "</div>" +
-      "<h3>Your workspace is empty</h3>" +
-      "<p>Add a PDF or image file to start editing.</p>";
+      "<h3>" + copy[0] + "</h3>" +
+      "<p>" + copy[1] + "</p>";
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "ws-btn ws-btn-primary";
     btn.style.margin = "0 auto";
-    btn.textContent = "Choose file";
+    btn.textContent = isOrganizeTool() ? "Select PDF files" : "Choose file";
     btn.addEventListener("click", () => el.fileInput.click());
     empty.appendChild(btn);
     el.pageStack.appendChild(empty);
@@ -728,6 +821,13 @@
   }
 
   function updateSelectionInfo() {
+    if (isOrganizeTool()) {
+      const n = selectedFileIds().length;
+      el.selectionInfo.textContent = n
+        ? n + " PDF" + (n > 1 ? "s" : "") + " selected"
+        : "No PDF selected";
+      return;
+    }
     const n = state.selected.size;
     el.selectionInfo.textContent = n
       ? n + " page" + (n > 1 ? "s" : "") + " selected"
@@ -739,6 +839,17 @@
   }
 
   function requireSelection() {
+    if (isOrganizeTool()) {
+      if (!selectedFileIds().length) {
+        const first = selectedFileId();
+        if (first == null) {
+          toast("Select a PDF first", true);
+          return false;
+        }
+        selectFile(first, false);
+      }
+      return !!selectedFileIds().length;
+    }
     if (!state.selected.size) {
       toast("Select at least one page first", true);
       return false;
@@ -750,9 +861,15 @@
 
   function updateMeta() {
     const sourcesSize = state.sources.reduce((s, f) => s + f.size, 0);
-    el.fileMeta.textContent = state.pages.length + " pages - " + formatSize(sourcesSize);
-    el.pageTotal.textContent = state.pages.length;
-    el.infoPages.textContent = state.pages.length;
+    const fileCount = orderedFileIds().length;
+    if (isOrganizeTool()) {
+      el.fileMeta.textContent = fileCount + " PDF" + (fileCount === 1 ? "" : "s") + " - " + formatSize(sourcesSize);
+      el.pageTotal.textContent = String(fileCount);
+    } else {
+      el.fileMeta.textContent = state.pages.length + " pages - " + formatSize(sourcesSize);
+      el.pageTotal.textContent = state.pages.length;
+    }
+    el.infoPages.textContent = isOrganizeTool() ? orderedFileIds().length : state.pages.length;
     el.infoSize.textContent = formatSize(sourcesSize);
     const annots = state.pages.reduce((s, p) => s + p.annotations.length, 0);
     el.infoAnnots.textContent = annots;
@@ -1151,17 +1268,34 @@
     }
   }
 
+  function actionPageIndices() {
+    if (state.selectedTool === "merge") return state.pages.map((_, i) => i);
+    if (isOrganizeTool()) {
+      const ids = selectedFileIds();
+      const all = orderedFileIds();
+      const use = ids.length ? ids : all.slice(0, 1);
+      const indices = [];
+      state.pages.forEach((page, i) => {
+        if (use.indexOf(page.fileId) !== -1) indices.push(i);
+      });
+      return indices;
+    }
+    return state.pages.map((_, i) => i);
+  }
+
   async function exportPdf(opts) {
     if (!state.pages.length) {
       toast("Nothing to export yet", true);
       return;
     }
     const options = opts || {};
+    const indices = actionPageIndices();
+    if (!indices.length) {
+      toast("Select a PDF first", true);
+      return;
+    }
     const out = await withProgress("Building PDF...", (setPct) =>
-      buildPdf(
-        state.pages.map((_, i) => i),
-        (done, total) => setPct(done / total)
-      )
+      buildPdf(indices, (done, total) => setPct(done / total))
     );
     const saveOpts = { useObjectStreams: true };
     const bytes = await out.save(saveOpts);
@@ -1198,21 +1332,35 @@
   }
 
   async function splitAfterSelection() {
-    if (!requireSelection()) return;
-    const cut = Math.max(...selectedIndices());
-    const all = state.pages.map((_, i) => i);
-    const base = baseName(el.fileName.value);
+    const fileId = selectedFileId();
+    if (fileId == null) {
+      toast("Select a PDF first", true);
+      return;
+    }
+    const pages = filePages(fileId);
+    if (!pages.length) {
+      toast("This PDF has no pages", true);
+      return;
+    }
+    const input = document.getElementById("splitAfterPage");
+    let cut = input ? parseInt(input.value, 10) : 1;
+    if (!Number.isFinite(cut) || cut < 1) cut = 1;
+    if (cut >= pages.length) {
+      toast("Pick a page before the last page", true);
+      return;
+    }
+    const indices = pages.map((item) => item.i);
+    const file = state.sources[fileId];
+    const base = baseName((file && file.name) || el.fileName.value);
     const first = await withProgress("Splitting document...", (setPct) =>
-      buildPdf(all.slice(0, cut + 1), (d, t) => setPct(d / t))
+      buildPdf(indices.slice(0, cut), (d, t) => setPct(d / t))
     );
     download(new Blob([await first.save()], { type: "application/pdf" }), base + "-part-1.pdf");
     await new Promise((r) => setTimeout(r, 350));
-    if (all.length > cut + 1) {
-      const second = await buildPdf(all.slice(cut + 1));
-      download(new Blob([await second.save()], { type: "application/pdf" }), base + "-part-2.pdf");
-    }
-    toast("Split after page " + (cut + 1));
-    status("Split after page " + (cut + 1));
+    const second = await buildPdf(indices.slice(cut));
+    download(new Blob([await second.save()], { type: "application/pdf" }), base + "-part-2.pdf");
+    toast("Split after page " + cut);
+    status("Split after page " + cut);
   }
 
   function totalSourceSize() {
@@ -1453,9 +1601,14 @@
       toast("Add a file first", true);
       return;
     }
+    const indices = actionPageIndices();
+    if (!indices.length) {
+      toast("Select a PDF first", true);
+      return;
+    }
     const original = totalSourceSize();
     const out = await withProgress("Compressing PDF...", (setPct) =>
-      buildPdf(state.pages.map((_, i) => i), (d, t) => setPct(d / t))
+      buildPdf(indices, (d, t) => setPct(d / t))
     );
     const bytes = await out.save({ useObjectStreams: true, addDefaultPage: false });
     const blob = new Blob([bytes], { type: "application/pdf" });
@@ -1473,6 +1626,28 @@
   /* ================= page edits ================= */
 
   function rotateSelection(delta) {
+    if (isOrganizeTool()) {
+      let ids = selectedFileIds();
+      if (!ids.length) {
+        const first = selectedFileId();
+        if (first == null) {
+          toast("Select a PDF first", true);
+          return;
+        }
+        selectFile(first, false);
+        ids = [first];
+      }
+      pushHistory();
+      state.pages.forEach((page) => {
+        if (ids.indexOf(page.fileId) !== -1) {
+          page.rotation = (page.rotation + delta + 360) % 360;
+        }
+      });
+      rerender("all");
+      toast("Rotated " + ids.length + " PDF" + (ids.length > 1 ? "s" : ""));
+      markSaved();
+      return;
+    }
     if (!requireSelection()) return;
     pushHistory();
     selectedIndices().forEach((i) => {
@@ -1484,6 +1659,19 @@
   }
 
   function moveSelection(direction) {
+    if (isOrganizeTool()) {
+      const ids = orderedFileIds();
+      const selected = selectedFileIds();
+      if (!selected.length) {
+        toast("Select a PDF first", true);
+        return;
+      }
+      const from = ids.indexOf(selected[0]);
+      const to = from + direction;
+      if (from < 0 || to < 0 || to >= ids.length) return;
+      moveFileTo(ids[from], ids[to]);
+      return;
+    }
     if (!requireSelection()) return;
     pushHistory();
     const indices = selectedIndices();
@@ -1503,6 +1691,21 @@
   }
 
   function deleteSelection() {
+    if (isOrganizeTool()) {
+      const ids = selectedFileIds();
+      if (!ids.length) {
+        toast("Select a PDF first", true);
+        return;
+      }
+      pushHistory();
+      state.pages = state.pages.filter((page) => ids.indexOf(page.fileId) === -1);
+      state.selected.clear();
+      if (state.current >= state.pages.length) state.current = Math.max(0, state.pages.length - 1);
+      rerender("all");
+      toast("Removed " + ids.length + " PDF" + (ids.length > 1 ? "s" : ""));
+      markSaved();
+      return;
+    }
     if (!requireSelection()) return;
     pushHistory();
     const indices = selectedIndices();
@@ -1545,10 +1748,10 @@
     watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
     sign: { title: "Sign Document", hint: "Draw a signature and place it on a page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
-    rotate: { title: "Rotate PDF", hint: "Rotate selected pages left or right.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page" },
-    split: { title: "Split PDF", hint: "Split the document after the selected page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page" },
-    merge: { title: "Merge PDF", hint: "Combine every page in this workspace into one PDF.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file" },
-    compress: { title: "Compress PDF", hint: "Rebuild with compressed streams to reduce size.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file" },
+    rotate: { title: "Rotate PDF", hint: "Select a PDF, then rotate every page in that file.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page", action: "Rotate & download" },
+    split: { title: "Split PDF", hint: "Keep the PDF as one file, then split it after a page number.", chips: [], page: ["split"], file: ["info", "files"], tab: "page", action: "Split PDF" },
+    merge: { title: "Merge PDF", hint: "Drag PDF cards to set the order, then merge them into one file.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file", action: "Merge PDF" },
+    compress: { title: "Compress PDF", hint: "Keep PDFs as files here, then compress the selected document.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file", action: "Compress PDF" },
     protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
     convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
     "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
@@ -1585,6 +1788,9 @@
     else document.documentElement.removeAttribute("data-layout");
     const railLabel = document.querySelector(".ws-rail-head span");
     if (railLabel) railLabel.textContent = isOrganizeTool() ? "PDFs" : "Pages";
+    const pageNav = document.getElementById("pageNavGroup");
+    if (pageNav) pageNav.hidden = isOrganizeTool();
+    updateActionDock();
 
     const workspace = WORKSPACES[key];
     const titleEl = document.getElementById("workspaceTitle");
@@ -1640,6 +1846,30 @@
     }
 
     if (workspace.mode) setTool(workspace.mode, !!silent);
+    else setTool("select", true);
+    updateActionDock();
+  }
+
+  function updateActionDock() {
+    const dock = document.getElementById("actionDock");
+    const primary = document.getElementById("primaryActionBtn");
+    if (!dock || !primary) return;
+    const workspace = WORKSPACES[state.selectedTool];
+    if (isOrganizeTool() && workspace && workspace.action) {
+      dock.hidden = false;
+      primary.textContent = workspace.action;
+    } else {
+      dock.hidden = true;
+    }
+  }
+
+  function runPrimaryAction() {
+    const tool = state.selectedTool;
+    if (tool === "merge") return exportPdf({ suffix: "-merged" });
+    if (tool === "compress") return compressAndDownload();
+    if (tool === "split") return splitAfterSelection();
+    if (tool === "rotate") return exportPdf({ suffix: "-rotated" });
+    return exportPdf();
   }
 
   /* ================= bindings ================= */
@@ -1701,11 +1931,20 @@
 
     document.getElementById("selectAllPages").addEventListener("click", () => {
       if (!state.pages.length) return;
+      if (isOrganizeTool()) {
+        orderedFileIds().forEach((id) => selectFile(id, true));
+        return;
+      }
       state.selected = new Set(state.pages.map((_, i) => i));
       applySelectionClasses();
       updateSelectionInfo();
       updateMeta();
     });
+
+    const dockAdd = document.getElementById("dockAddBtn");
+    if (dockAdd) dockAdd.addEventListener("click", () => el.fileInput.click());
+    const primaryAction = document.getElementById("primaryActionBtn");
+    if (primaryAction) primaryAction.addEventListener("click", () => runPrimaryAction());
 
     document.querySelectorAll(".ws-tab").forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -1761,7 +2000,9 @@
       e.preventDefault();
       depth = 0;
       el.dropHint.classList.remove("is-visible");
-      const added = await addFiles(e.dataTransfer.files || []);
+      const incoming = e.dataTransfer.files || [];
+      if (!incoming.length) return;
+      const added = await addFiles(incoming);
       if (!added) return;
       if (state.sources[0]) el.fileName.value = baseName(state.sources[0].name) + ".pdf";
       await rerender("all");
