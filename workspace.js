@@ -462,16 +462,8 @@
     }
   }
 
-  async function renderThumbs() {
-    el.thumbs.innerHTML = "";
-    for (let i = 0; i < state.pages.length; i++) {
-      const thumb = document.createElement("div");
-      thumb.className = "ws-thumb";
-      thumb.dataset.index = String(i);
-      thumb.addEventListener("click", (e) => selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey));
-      el.thumbs.appendChild(thumb);
-      renderThumb(i, thumb);
-    }
+  function isOrganizeTool() {
+    return ["merge", "split", "rotate", "compress"].indexOf(state.selectedTool) !== -1;
   }
 
   function isPageCardTool() {
@@ -480,6 +472,83 @@
 
   function isFileCardTool() {
     return state.selectedTool === "merge";
+  }
+
+  function makeRemoveBtn(onClick) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ws-card-remove";
+    btn.setAttribute("aria-label", "Remove");
+    btn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    });
+    btn.addEventListener("mousedown", (e) => e.stopPropagation());
+    return btn;
+  }
+
+  function removeFile(fileId) {
+    fileId = Number(fileId);
+    const count = state.pages.filter((page) => page.fileId === fileId).length;
+    if (!count && !state.sources[fileId]) return;
+    pushHistory();
+    state.pages = state.pages.filter((page) => page.fileId !== fileId);
+    state.selected.clear();
+    if (state.current >= state.pages.length) state.current = Math.max(0, state.pages.length - 1);
+    rerender("all");
+    toast("Removed PDF");
+    markSaved();
+  }
+
+  function selectFile(fileId, additive) {
+    const indices = state.pages
+      .map((page, i) => (page.fileId === Number(fileId) ? i : -1))
+      .filter((i) => i >= 0);
+    if (!indices.length) return;
+    if (!additive) state.selected.clear();
+    indices.forEach((i) => state.selected.add(i));
+    state.current = indices[0];
+    el.pageNumber.value = String(indices[0] + 1);
+    applySelectionClasses();
+    updateSelectionInfo();
+    updateMeta();
+  }
+
+  async function renderFileThumbs() {
+    el.thumbs.innerHTML = "";
+    const ids = orderedFileIds();
+    for (let n = 0; n < ids.length; n++) {
+      const fileId = ids[n];
+      const first = state.pages.findIndex((page) => page.fileId === fileId);
+      if (first < 0) continue;
+      const thumb = document.createElement("div");
+      thumb.className = "ws-thumb";
+      thumb.dataset.fileId = String(fileId);
+      thumb.dataset.index = String(first);
+      thumb.addEventListener("click", (e) => selectFile(fileId, e.shiftKey || e.metaKey || e.ctrlKey));
+      el.thumbs.appendChild(thumb);
+      await renderThumb(first, thumb);
+      const num = thumb.querySelector(".ws-thumb-num");
+      if (num) num.textContent = "PDF";
+    }
+  }
+
+  async function renderThumbs() {
+    el.thumbs.innerHTML = "";
+    if (isOrganizeTool()) {
+      await renderFileThumbs();
+      return;
+    }
+    for (let i = 0; i < state.pages.length; i++) {
+      const thumb = document.createElement("div");
+      thumb.className = "ws-thumb";
+      thumb.dataset.index = String(i);
+      thumb.addEventListener("click", (e) => selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey));
+      el.thumbs.appendChild(thumb);
+      renderThumb(i, thumb);
+    }
   }
 
   function orderedFileIds() {
@@ -574,9 +643,9 @@
       caption.textContent = file.name;
       wrap.appendChild(caption);
 
-      wrap.addEventListener("click", () => {
-        const first = state.pages.findIndex((page) => page.fileId === fileId);
-        if (first >= 0) selectPage(first, false);
+      wrap.appendChild(makeRemoveBtn(() => removeFile(fileId)));
+      wrap.addEventListener("click", (e) => {
+        selectFile(fileId, e.shiftKey || e.metaKey || e.ctrlKey);
       });
       bindCardDrag(wrap, String(fileId), (from) => moveFileTo(from, fileId));
       el.pageStack.appendChild(wrap);
@@ -602,6 +671,10 @@
       badge.textContent = "Page " + (i + 1);
       wrap.appendChild(badge);
 
+      wrap.appendChild(makeRemoveBtn(() => {
+        state.selected = new Set([i]);
+        deleteSelection();
+      }));
       wrap.addEventListener("click", (e) => {
         selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
       });
@@ -702,12 +775,17 @@
   /* ================= selection ================= */
 
   function applySelectionClasses() {
-    document.querySelectorAll(".ws-page").forEach((n) =>
+    document.querySelectorAll(".ws-page[data-index]").forEach((n) =>
       n.classList.toggle("is-selected", state.selected.has(Number(n.dataset.index)))
     );
-    document.querySelectorAll(".ws-thumb").forEach((n) =>
+    document.querySelectorAll(".ws-thumb[data-index]").forEach((n) =>
       n.classList.toggle("is-selected", state.selected.has(Number(n.dataset.index)))
     );
+    document.querySelectorAll("[data-file-id]").forEach((n) => {
+      const fileId = Number(n.dataset.fileId);
+      const selected = state.pages.some((page, i) => page.fileId === fileId && state.selected.has(i));
+      n.classList.toggle("is-selected", selected);
+    });
   }
 
   function selectPage(index, additive) {
@@ -1581,8 +1659,10 @@
     storeSelectedTool(key);
     if (key) document.documentElement.setAttribute("data-tool", key);
     else document.documentElement.removeAttribute("data-tool");
-    if (isPageCardTool()) document.documentElement.setAttribute("data-layout", "cards");
+    if (isOrganizeTool()) document.documentElement.setAttribute("data-layout", "cards");
     else document.documentElement.removeAttribute("data-layout");
+    const railLabel = document.querySelector(".ws-rail-head span");
+    if (railLabel) railLabel.textContent = isOrganizeTool() ? "PDFs" : "Pages";
 
     const workspace = WORKSPACES[key];
     const titleEl = document.getElementById("workspaceTitle");
