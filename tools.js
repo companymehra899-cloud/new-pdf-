@@ -69,16 +69,6 @@ window.DM_TOOLS = {
     workspace: "jpg-pdf",
     accent: "t-steel",
   },
-  "word-pdf": {
-    title: "Word to PDF",
-    heading: "WORD TO PDF",
-    kicker: "Convert",
-    desc: "Convert a Word (.docx) or plain text file into a PDF in your browser.",
-    accept: ".docx,.txt,.html,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    hint: "DOCX or TXT files",
-    workspace: "word-pdf",
-    accent: "t-steel",
-  },
   merge: {
     title: "Merge PDF",
     heading: "MERGE PDF",

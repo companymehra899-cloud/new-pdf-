@@ -255,8 +255,7 @@ html[data-tool="protect"] .ws-canvas-toolbar,
 html[data-tool="convert"] .ws-canvas-toolbar,
 html[data-tool="pdf-jpg"] .ws-canvas-toolbar,
 html[data-tool="jpg-pdf"] .ws-canvas-toolbar,
-html[data-tool="pdf-word"] .ws-canvas-toolbar,
-html[data-tool="word-pdf"] .ws-canvas-toolbar {
+html[data-tool="pdf-word"] .ws-canvas-toolbar {
   display: none;
 }
 .ws-chip[hidden] {
@@ -503,8 +502,7 @@ html[data-tool="protect"] .ws-tab-body[data-body="page"],
 html[data-tool="convert"] .ws-tab-body[data-body="page"],
 html[data-tool="pdf-jpg"] .ws-tab-body[data-body="page"],
 html[data-tool="jpg-pdf"] .ws-tab-body[data-body="page"],
-html[data-tool="pdf-word"] .ws-tab-body[data-body="page"],
-html[data-tool="word-pdf"] .ws-tab-body[data-body="page"] {
+html[data-tool="pdf-word"] .ws-tab-body[data-body="page"] {
   display: none !important;
 }
 html[data-tool="rotate"] .ws-tab-body[data-body="page"],

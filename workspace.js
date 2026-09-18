@@ -128,77 +128,6 @@
     return /^image\/(png|jpeg|jpg)$/i.test(file.type) || /\.(png|jpe?g)$/i.test(file.name);
   }
 
-  function isTextLike(file) {
-    return (
-      /^text\//i.test(file.type) ||
-      /\.(txt|html|htm|md|csv)$/i.test(file.name) ||
-      /\.docx$/i.test(file.name)
-    );
-  }
-
-  async function fileToPlainText(file) {
-    const buffer = await file.arrayBuffer();
-    if (/\.docx$/i.test(file.name)) {
-      const xml = new TextDecoder("utf-8").decode(buffer);
-      return xml
-        .replace(/<w:p[^>]*>/g, "\n")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/\s+\n/g, "\n")
-        .replace(/[ \t]{2,}/g, " ")
-        .trim() || "Converted from DOCX";
-    }
-    return new TextDecoder("utf-8").decode(buffer);
-  }
-
-  async function textToPdfBytes(file) {
-    const raw = await fileToPlainText(file);
-    const doc = await PDFLib.PDFDocument.create();
-    const font = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
-    const pageSize = [595, 842];
-    const margin = 48;
-    const size = 12;
-    const lineHeight = 16;
-    const maxWidth = pageSize[0] - margin * 2;
-    const words = raw.replace(/\r\n/g, "\n").split(/(\s+)/);
-    const lines = [];
-    let current = "";
-    words.forEach((word) => {
-      const next = current + word;
-      if (font.widthOfTextAtSize(next.replace(/\n/g, " "), size) > maxWidth) {
-        if (current) lines.push(current);
-        current = word.trimStart();
-      } else if (word.includes("\n")) {
-        const parts = (current + word).split("\n");
-        parts.slice(0, -1).forEach((p) => lines.push(p));
-        current = parts[parts.length - 1];
-      } else {
-        current = next;
-      }
-    });
-    if (current) lines.push(current);
-
-    let page = doc.addPage(pageSize);
-    let y = pageSize[1] - margin;
-    lines.forEach((line) => {
-      if (y < margin) {
-        page = doc.addPage(pageSize);
-        y = pageSize[1] - margin;
-      }
-      page.drawText(line.replace(/[^\x09\x0A\x0D\x20-\x7E]/g, "?"), {
-        x: margin,
-        y: y,
-        size: size,
-        font: font,
-        color: PDFLib.rgb(0.1, 0.15, 0.2),
-      });
-      y -= lineHeight;
-    });
-    return await doc.save();
-  }
-
   /* ================= modal ================= */
 
   function openModal(title, buildBody, buildFoot) {
@@ -321,10 +250,6 @@
       const pdfBytes = await imageToPdfBytes(file);
       bytes = pdfBytes;
       size = pdfBytes.length;
-    } else if (isTextLike(file)) {
-      const pdfBytes = await textToPdfBytes(file);
-      bytes = pdfBytes;
-      size = pdfBytes.length;
     } else {
       throw new Error("Unsupported file type");
     }
@@ -352,9 +277,9 @@
 
   async function addFiles(fileList) {
     const files = Array.from(fileList);
-    const usable = files.filter((f) => isPdfFile(f) || isImageFile(f) || isTextLike(f));
+    const usable = files.filter((f) => isPdfFile(f) || isImageFile(f));
     if (!usable.length) {
-      toast("Only PDF, image, or text files are supported", true);
+      toast("Only PDF or image files are supported", true);
       return 0;
     }
     let added = 0;
@@ -1631,7 +1556,6 @@
     "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
     "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
     "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["info", "files"], tab: "file" },
-    "word-pdf": { title: "Word to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["info", "files"], tab: "file" },
   };
 
   function readStoredTool() {
