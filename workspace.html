@@ -22,9 +22,9 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=14" />
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2329b6e8'/%3E%3Cpath d='M11 8h7l4 4v12a2 2 0 0 1-2 2h-9a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="workspace.css?v=15" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
 
@@ -34,11 +34,10 @@
       <svg viewBox="0 0 24 24"><path d="M14.5 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </a>
     <span class="ws-logo">
-      <svg viewBox="0 0 40 40" aria-hidden="true">
-        <rect x="4" y="3" width="32" height="34" rx="6" fill="#2bb3e6"/>
-        <path d="M13 10h10l5 5v16a2 2 0 0 1-2 2H13a2 2 0 0 1-2-2V12a2 2 0 0 1 2-2z" fill="#fff"/>
-        <path d="M23 10v5h5" fill="#bfe9f8"/>
-        <path d="M26 30l6-6 3 3-6 6-4 1z" fill="#ff9f43"/>
+      <svg viewBox="0 0 36 36" aria-hidden="true">
+        <rect width="36" height="36" rx="8" fill="#e5322d"/>
+        <path d="M11 8h9l6 6v14a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z" fill="#fff"/>
+        <path d="M20 8v6h6" fill="#f7c1be"/>
       </svg>
     </span>
     <div class="ws-file">
@@ -288,6 +287,70 @@
           Images to PDF (from files)
         </button>
       </div>
+      <div class="ws-panel-block" data-scope="pdf-word">
+        <h4>PDF to Word</h4>
+        <p class="ws-note">Extract page text into a Word-friendly document.</p>
+        <button type="button" class="ws-list-btn" id="pdfWordBtn">
+          <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Download as text
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="word-pdf">
+        <h4>Word to PDF</h4>
+        <p class="ws-note">The converted PDF is ready to download.</p>
+        <button type="button" class="ws-list-btn" id="wordPdfBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download PDF
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="html-pdf">
+        <h4>HTML to PDF</h4>
+        <p class="ws-note">The HTML file is converted in your browser.</p>
+        <button type="button" class="ws-list-btn" id="htmlPdfBtn">
+          <svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4-4m4 4l4-4M5 19h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Download PDF
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="unlock">
+        <h4>Unlock PDF</h4>
+        <p class="ws-note">If the file opened, download a copy without the password.</p>
+        <button type="button" class="ws-list-btn" id="unlockBtn">
+          <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          Unlock &amp; download
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="repair">
+        <h4>Repair PDF</h4>
+        <p class="ws-note">Rebuild readable pages into a new PDF file.</p>
+        <button type="button" class="ws-list-btn" id="repairBtn">
+          <svg viewBox="0 0 24 24"><path d="M14 7l3 3-8 8H6v-3z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M4 20c4-2 8-8 10-12" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          Repair &amp; download
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="pagenumbers">
+        <h4>Page numbers</h4>
+        <p class="ws-note">Stamp a page number on every page, then download.</p>
+        <button type="button" class="ws-list-btn" id="pageNumbersBtn">
+          <svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 17h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Add page numbers
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="crop">
+        <h4>Crop PDF</h4>
+        <p class="ws-note">Trim equal margins from selected pages.</p>
+        <button type="button" class="ws-list-btn" id="cropBtn">
+          <svg viewBox="0 0 24 24"><path d="M6 3v15h15M3 6h15v15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Crop margins
+        </button>
+      </div>
+      <div class="ws-panel-block" data-scope="redact">
+        <h4>Redact PDF</h4>
+        <p class="ws-note">Place black boxes over sensitive areas, then download.</p>
+        <button type="button" class="ws-list-btn" id="redactBtn">
+          <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M7 12h10" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>
+          Add redaction box
+        </button>
+      </div>
 
       <div class="ws-panel-block" data-scope="info">
         <h4>Document info</h4>
@@ -348,6 +411,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=14"></script>
+<script src="workspace.js?v=15"></script>
 </body>
 </html>

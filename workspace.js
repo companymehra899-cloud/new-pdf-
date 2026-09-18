@@ -390,6 +390,25 @@
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
     await pj.render({ canvasContext: ctx, viewport: viewport }).promise;
+    if (entry.cropN) {
+      const insetX = canvas.width * entry.cropN;
+      const insetY = canvas.height * entry.cropN;
+      const cropped = document.createElement("canvas");
+      cropped.width = Math.max(1, Math.floor(canvas.width - insetX * 2));
+      cropped.height = Math.max(1, Math.floor(canvas.height - insetY * 2));
+      cropped.getContext("2d").drawImage(
+        canvas,
+        insetX,
+        insetY,
+        cropped.width,
+        cropped.height,
+        0,
+        0,
+        cropped.width,
+        cropped.height
+      );
+      return cropped;
+    }
     return canvas;
   }
 
@@ -1427,6 +1446,12 @@
       const [copied] = await out.copyPages(libDoc, [entry.sourceIndex]);
       const rot = totalRotation(entry);
       if (rot) copied.setRotation(PDFLib.degrees(rot));
+      if (entry.cropN) {
+        const size = copied.getSize();
+        const insetX = size.width * entry.cropN;
+        const insetY = size.height * entry.cropN;
+        copied.setCropBox(insetX, insetY, size.width - insetX * 2, size.height - insetY * 2);
+      }
 
       if (entry.annotations.length) {
         const viewport = await pageViewport(entry, 1);
@@ -1843,6 +1868,68 @@
     }
   }
 
+  function blackBoxDataUrl() {
+    const c = document.createElement("canvas");
+    c.width = 8;
+    c.height = 8;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, 8, 8);
+    return c.toDataURL("image/png");
+  }
+
+  function addPageNumbers() {
+    if (!state.pages.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    pushHistory();
+    state.pages.forEach((page, i) => {
+      page.annotations.push({
+        id: annoSeq++,
+        type: "text",
+        nx: 0.46,
+        ny: 0.94,
+        text: String(i + 1),
+        sizeN: 0.03,
+        color: "#333333",
+      });
+    });
+    rerender("all");
+    toast("Page numbers added");
+    markSaved();
+  }
+
+  function cropMargins() {
+    const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
+    if (!targets.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    pushHistory();
+    targets.forEach((i) => {
+      state.pages[i].cropN = 0.06;
+    });
+    rerender("all");
+    toast("Margins cropped. Download to apply.");
+    markSaved();
+  }
+
+  function startRedact() {
+    if (!state.pages.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    state.pendingImage = {
+      dataUrl: blackBoxDataUrl(),
+      wN: 0.28,
+      hN: 0.08,
+    };
+    setTool("image", true);
+    toast("Click a page to place a redaction box");
+    status("Click a page to redact");
+  }
+
   /* ================= page edits ================= */
 
   function rotateSelection(delta) {
@@ -1953,7 +2040,16 @@
     convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
     "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
     "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["info", "files"], tab: "file" },
+    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["pdf-word", "info", "files"], tab: "file" },
+    "html-pdf": { title: "HTML to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["html-pdf", "info", "files"], tab: "file" },
+    unlock: { title: "Unlock PDF", hint: "Download a copy without the password if the file opened.", chips: [], page: [], file: ["unlock", "info", "files"], tab: "file" },
+    organize: { title: "Organize PDF", hint: "Sort, delete or rearrange pages.", chips: [], page: ["arrange", "delete"], file: ["info", "files"], tab: "page" },
+    extract: { title: "Extract pages", hint: "Select pages, then extract them into a new PDF.", chips: [], page: ["extract"], file: ["info", "files"], tab: "page" },
+    remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: ["info", "files"], tab: "page" },
+    repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: ["repair", "info", "files"], tab: "file" },
+    pagenumbers: { title: "Page numbers", hint: "Stamp a page number on every page.", chips: [], page: [], file: ["pagenumbers", "info", "files"], tab: "file" },
+    crop: { title: "Crop PDF", hint: "Trim equal margins from selected pages.", chips: [], page: [], file: ["crop", "info", "files"], tab: "file" },
+    redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image" },
   };
 
   function readStoredTool() {
@@ -2134,6 +2230,22 @@
     }
     const placeWatermarkBtn = document.getElementById("placeWatermarkBtn");
     if (placeWatermarkBtn) placeWatermarkBtn.addEventListener("click", () => setTool("text", true));
+    const pdfWordBtn = document.getElementById("pdfWordBtn");
+    if (pdfWordBtn) pdfWordBtn.addEventListener("click", exportPdfAsText);
+    const wordPdfBtn = document.getElementById("wordPdfBtn");
+    if (wordPdfBtn) wordPdfBtn.addEventListener("click", () => exportPdf({ suffix: "" }));
+    const htmlPdfBtn = document.getElementById("htmlPdfBtn");
+    if (htmlPdfBtn) htmlPdfBtn.addEventListener("click", () => exportPdf({ suffix: "" }));
+    const unlockBtn = document.getElementById("unlockBtn");
+    if (unlockBtn) unlockBtn.addEventListener("click", () => exportPdf({ suffix: "-unlocked" }));
+    const repairBtn = document.getElementById("repairBtn");
+    if (repairBtn) repairBtn.addEventListener("click", () => exportPdf({ suffix: "-repaired" }));
+    const pageNumbersBtn = document.getElementById("pageNumbersBtn");
+    if (pageNumbersBtn) pageNumbersBtn.addEventListener("click", addPageNumbers);
+    const cropBtn = document.getElementById("cropBtn");
+    if (cropBtn) cropBtn.addEventListener("click", cropMargins);
+    const redactBtn = document.getElementById("redactBtn");
+    if (redactBtn) redactBtn.addEventListener("click", startRedact);
 
     document.getElementById("selectAllPages").addEventListener("click", () => {
       if (!state.pages.length) return;

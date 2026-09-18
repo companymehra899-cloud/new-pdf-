@@ -22,7 +22,7 @@
   if (kickerEl) kickerEl.textContent = tool.kicker || "Tool";
   if (headingEl) headingEl.textContent = tool.heading || "UPLOAD FILE";
   if (descEl) descEl.textContent = tool.desc || "Choose a file to continue.";
-  if (hintEl) hintEl.textContent = "OR CLICK TO UPLOAD  ·  " + String(tool.hint || "PDF FILES").toUpperCase();
+  if (hintEl) hintEl.textContent = "or drop files here  ·  " + String(tool.hint || "PDF files");
 
   const dropzone = document.getElementById("dropzone");
   const fileInput = document.getElementById("fileInput");
