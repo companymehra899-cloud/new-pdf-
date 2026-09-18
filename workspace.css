@@ -329,67 +329,6 @@ html[data-tool="word-pdf"] .ws-canvas-toolbar {
 .ws-empty p { margin: 0 0 18px; font-weight: 700; font-size: 14.5px; }
 .ws-empty-art { width: 108px; margin: 0 auto 14px; opacity: .9; }
 
-.ws-file-board {
-  width: min(640px, 100%);
-  margin: 48px auto 0;
-  background: #fff;
-  border: 1px solid var(--ws-line);
-  border-radius: 18px;
-  box-shadow: 0 12px 28px rgba(31, 41, 51, .1);
-  padding: 28px 26px 24px;
-}
-.ws-file-board h3 {
-  font-family: "Baloo 2", sans-serif;
-  font-size: 26px;
-  margin: 0 0 6px;
-  color: var(--ws-ink);
-}
-.ws-board-hint {
-  margin: 0 0 18px;
-  color: var(--ws-muted);
-  font-weight: 700;
-  font-size: 14.5px;
-}
-.ws-board-files {
-  list-style: none;
-  margin: 0 0 16px;
-  padding: 0;
-}
-.ws-board-files li {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--ws-line);
-  border-radius: 12px;
-  background: #f7fafc;
-  margin-bottom: 8px;
-}
-.ws-board-name {
-  font-weight: 800;
-  color: #35525f;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.ws-board-meta {
-  color: var(--ws-muted);
-  font-weight: 700;
-  font-size: 12.5px;
-  flex-shrink: 0;
-}
-
-html[data-preview="off"] .ws-topbar-center {
-  display: none;
-}
-html[data-thumbs="off"] .ws-rail {
-  display: none;
-}
-html[data-thumbs="off"] .ws-layout {
-  grid-template-columns: minmax(0, 1fr) 268px;
-}
-
 .ws-hint {
   position: absolute;
   left: 50%;
@@ -812,13 +751,11 @@ html[data-tool] .ws-tab-body[data-body="file"] {
   .ws-layout { grid-template-columns: 168px minmax(0, 1fr) 236px; }
   .ws-file input { width: 150px; }
   .ws-saved { display: none; }
-  html[data-thumbs="off"] .ws-layout { grid-template-columns: minmax(0, 1fr) 236px; }
 }
 @media (max-width: 860px) {
   .ws-layout { grid-template-columns: 132px minmax(0, 1fr); }
   .ws-panel { display: none; }
   .ws-topbar-center { display: none; }
-  html[data-thumbs="off"] .ws-layout { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 620px) {
   .ws-layout { grid-template-columns: minmax(0, 1fr); }
