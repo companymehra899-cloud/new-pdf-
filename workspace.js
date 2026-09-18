@@ -392,11 +392,11 @@
   }
 
   function isPageCardTool() {
-    return false;
+    return isOrganizeTool();
   }
 
   function isFileCardTool() {
-    return isOrganizeTool();
+    return false;
   }
 
   function filePages(fileId) {
@@ -494,7 +494,7 @@
 
   async function renderThumbs() {
     el.thumbs.innerHTML = "";
-    if (isOrganizeTool()) {
+    if (false && isOrganizeTool()) {
       await renderFileThumbs();
       return;
     }
@@ -667,35 +667,159 @@
     applySelectionClasses();
   }
 
+  function hoverAction(label, svg, onClick) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "ws-hover-btn";
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+    btn.innerHTML = svg;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onClick();
+    });
+    btn.addEventListener("mousedown", (e) => e.stopPropagation());
+    return btn;
+  }
+
   async function renderPageCards() {
     el.pageStack.classList.add("is-cards");
+    const scale = 0.38 * Math.max(0.7, state.zoom);
     for (let i = 0; i < state.pages.length; i++) {
       const entry = state.pages[i];
       const wrap = document.createElement("div");
-      wrap.className = "ws-page ws-page-card";
+      wrap.className = "ws-page ws-page-card ws-thumb-card";
       wrap.dataset.index = String(i);
 
-      const canvas = await renderPageCanvas(entry, 0.36);
+      const cover = document.createElement("div");
+      cover.className = "ws-card-cover";
+      const canvas = await renderPageCanvas(entry, scale);
       canvas.style.width = "100%";
       canvas.style.height = "auto";
-      wrap.appendChild(canvas);
+      cover.appendChild(canvas);
+      wrap.appendChild(cover);
 
-      const badge = document.createElement("span");
-      badge.className = "ws-page-badge";
-      badge.textContent = "Page " + (i + 1);
-      wrap.appendChild(badge);
+      const check = document.createElement("span");
+      check.className = "ws-card-check";
+      check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      wrap.appendChild(check);
 
-      wrap.appendChild(makeRemoveBtn(() => {
-        state.selected = new Set([i]);
-        deleteSelection();
-      }));
+      const hover = document.createElement("div");
+      hover.className = "ws-hover-bar";
+      hover.appendChild(hoverAction("Rotate left", '<svg viewBox="0 0 24 24"><path d="M8 7h7a5 5 0 1 1 0 10H9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 4L8 7l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => rotateOne(i, -90)));
+      hover.appendChild(hoverAction("Rotate right", '<svg viewBox="0 0 24 24"><path d="M16 7H9a5 5 0 1 0 0 10h6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 4l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => rotateOne(i, 90)));
+      hover.appendChild(hoverAction("Preview", '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => openLightbox(i)));
+      hover.appendChild(hoverAction("Duplicate", '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 16V6h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => duplicatePage(i)));
+      hover.appendChild(hoverAction("Delete", '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M9 7V5h6v2M6 7l1 12h10l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => deleteOne(i)));
+      wrap.appendChild(hover);
+
+      const num = document.createElement("span");
+      num.className = "ws-page-num";
+      num.textContent = String(i + 1);
+      wrap.appendChild(num);
+
+      const rot = totalRotation(entry);
+      if (rot) {
+        const rotBadge = document.createElement("span");
+        rotBadge.className = "ws-thumb-rot";
+        rotBadge.textContent = rot + "\u00b0";
+        wrap.appendChild(rotBadge);
+      }
+
       wrap.addEventListener("click", (e) => {
+        if (e.target.closest(".ws-hover-bar")) return;
         selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
+      });
+      wrap.addEventListener("dblclick", (e) => {
+        e.preventDefault();
+        openLightbox(i);
       });
       bindCardDrag(wrap, String(i), (from) => movePageTo(from, i));
       el.pageStack.appendChild(wrap);
     }
+
+    const adder = document.createElement("button");
+    adder.type = "button";
+    adder.className = "ws-add-card";
+    adder.innerHTML = "<span>+</span><b>Add files</b><em>or drop PDFs here</em>";
+    adder.addEventListener("click", () => el.fileInput.click());
+    el.pageStack.appendChild(adder);
     applySelectionClasses();
+  }
+
+  function rotateOne(index, delta) {
+    if (!state.pages[index]) return;
+    pushHistory();
+    state.pages[index].rotation = (state.pages[index].rotation + delta + 360) % 360;
+    state.selected = new Set([index]);
+    rerender("all");
+    markSaved();
+  }
+
+  function deleteOne(index) {
+    if (!state.pages[index]) return;
+    pushHistory();
+    state.pages.splice(index, 1);
+    state.selected.clear();
+    if (state.current >= state.pages.length) state.current = Math.max(0, state.pages.length - 1);
+    rerender("all");
+    toast("Page removed");
+    markSaved();
+  }
+
+  function duplicatePage(index) {
+    const entry = state.pages[index];
+    if (!entry) return;
+    pushHistory();
+    const copy = {
+      fileId: entry.fileId,
+      sourceIndex: entry.sourceIndex,
+      srcRotation: entry.srcRotation,
+      rotation: entry.rotation,
+      annotations: JSON.parse(JSON.stringify(entry.annotations || [])),
+    };
+    state.pages.splice(index + 1, 0, copy);
+    state.selected = new Set([index + 1]);
+    rerender("all");
+    toast("Page duplicated");
+    markSaved();
+  }
+
+  async function openLightbox(index) {
+    const box = document.getElementById("lightbox");
+    const stage = document.getElementById("lightboxStage");
+    const label = document.getElementById("lightboxLabel");
+    if (!box || !stage || !state.pages[index]) return;
+    state.current = index;
+    stage.innerHTML = "";
+    try {
+      const canvas = await renderPageCanvas(state.pages[index], 1.35);
+      stage.appendChild(canvas);
+    } catch (err) {
+      console.error(err);
+    }
+    if (label) label.textContent = "Page " + (index + 1) + " of " + state.pages.length;
+    box.hidden = false;
+  }
+
+  function closeLightbox() {
+    const box = document.getElementById("lightbox");
+    if (box) box.hidden = true;
+  }
+
+  function rotateAllPages(delta) {
+    if (!state.pages.length) {
+      toast("Add a PDF first", true);
+      return;
+    }
+    pushHistory();
+    state.pages.forEach((page) => {
+      page.rotation = (page.rotation + delta + 360) % 360;
+    });
+    rerender("all");
+    toast("Rotated all pages");
+    markSaved();
   }
 
   async function renderStack() {
@@ -821,17 +945,13 @@
   }
 
   function updateSelectionInfo() {
-    if (isOrganizeTool()) {
-      const n = selectedFileIds().length;
-      el.selectionInfo.textContent = n
-        ? n + " PDF" + (n > 1 ? "s" : "") + " selected"
-        : "No PDF selected";
-      return;
-    }
     const n = state.selected.size;
-    el.selectionInfo.textContent = n
+    const text = n
       ? n + " page" + (n > 1 ? "s" : "") + " selected"
       : "No page selected";
+    el.selectionInfo.textContent = text;
+    const cmd = document.getElementById("cmdStatus");
+    if (cmd) cmd.textContent = n ? n + " selected" : state.pages.length + " pages";
   }
 
   function selectedIndices() {
@@ -839,17 +959,6 @@
   }
 
   function requireSelection() {
-    if (isOrganizeTool()) {
-      if (!selectedFileIds().length) {
-        const first = selectedFileId();
-        if (first == null) {
-          toast("Select a PDF first", true);
-          return false;
-        }
-        selectFile(first, false);
-      }
-      return !!selectedFileIds().length;
-    }
     if (!state.selected.size) {
       toast("Select at least one page first", true);
       return false;
@@ -861,15 +970,9 @@
 
   function updateMeta() {
     const sourcesSize = state.sources.reduce((s, f) => s + f.size, 0);
-    const fileCount = orderedFileIds().length;
-    if (isOrganizeTool()) {
-      el.fileMeta.textContent = fileCount + " PDF" + (fileCount === 1 ? "" : "s") + " - " + formatSize(sourcesSize);
-      el.pageTotal.textContent = String(fileCount);
-    } else {
-      el.fileMeta.textContent = state.pages.length + " pages - " + formatSize(sourcesSize);
-      el.pageTotal.textContent = state.pages.length;
-    }
-    el.infoPages.textContent = isOrganizeTool() ? orderedFileIds().length : state.pages.length;
+    el.fileMeta.textContent = state.pages.length + " pages - " + formatSize(sourcesSize);
+    el.pageTotal.textContent = state.pages.length;
+    el.infoPages.textContent = state.pages.length;
     el.infoSize.textContent = formatSize(sourcesSize);
     const annots = state.pages.reduce((s, p) => s + p.annotations.length, 0);
     el.infoAnnots.textContent = annots;
@@ -1269,17 +1372,6 @@
   }
 
   function actionPageIndices() {
-    if (state.selectedTool === "merge") return state.pages.map((_, i) => i);
-    if (isOrganizeTool()) {
-      const ids = selectedFileIds();
-      const all = orderedFileIds();
-      const use = ids.length ? ids : all.slice(0, 1);
-      const indices = [];
-      state.pages.forEach((page, i) => {
-        if (use.indexOf(page.fileId) !== -1) indices.push(i);
-      });
-      return indices;
-    }
     return state.pages.map((_, i) => i);
   }
 
@@ -1332,32 +1424,26 @@
   }
 
   async function splitAfterSelection() {
-    const fileId = selectedFileId();
-    if (fileId == null) {
-      toast("Select a PDF first", true);
-      return;
-    }
-    const pages = filePages(fileId);
-    if (!pages.length) {
-      toast("This PDF has no pages", true);
+    if (!state.pages.length) {
+      toast("Add a PDF first", true);
       return;
     }
     const input = document.getElementById("splitAfterPage");
-    let cut = input ? parseInt(input.value, 10) : 1;
+    let cut = input ? parseInt(input.value, 10) : 0;
+    if (!cut && state.selected.size) cut = Math.max(...selectedIndices()) + 1;
     if (!Number.isFinite(cut) || cut < 1) cut = 1;
-    if (cut >= pages.length) {
+    if (cut >= state.pages.length) {
       toast("Pick a page before the last page", true);
       return;
     }
-    const indices = pages.map((item) => item.i);
-    const file = state.sources[fileId];
-    const base = baseName((file && file.name) || el.fileName.value);
+    const all = state.pages.map((_, i) => i);
+    const base = baseName(el.fileName.value);
     const first = await withProgress("Splitting document...", (setPct) =>
-      buildPdf(indices.slice(0, cut), (d, t) => setPct(d / t))
+      buildPdf(all.slice(0, cut), (d, t) => setPct(d / t))
     );
     download(new Blob([await first.save()], { type: "application/pdf" }), base + "-part-1.pdf");
     await new Promise((r) => setTimeout(r, 350));
-    const second = await buildPdf(indices.slice(cut));
+    const second = await buildPdf(all.slice(cut));
     download(new Blob([await second.save()], { type: "application/pdf" }), base + "-part-2.pdf");
     toast("Split after page " + cut);
     status("Split after page " + cut);
@@ -1626,26 +1712,12 @@
   /* ================= page edits ================= */
 
   function rotateSelection(delta) {
-    if (isOrganizeTool()) {
-      let ids = selectedFileIds();
-      if (!ids.length) {
-        const first = selectedFileId();
-        if (first == null) {
-          toast("Select a PDF first", true);
-          return;
-        }
-        selectFile(first, false);
-        ids = [first];
-      }
-      pushHistory();
-      state.pages.forEach((page) => {
-        if (ids.indexOf(page.fileId) !== -1) {
-          page.rotation = (page.rotation + delta + 360) % 360;
-        }
-      });
-      rerender("all");
-      toast("Rotated " + ids.length + " PDF" + (ids.length > 1 ? "s" : ""));
-      markSaved();
+    if (!state.pages.length) {
+      toast("Add a PDF first", true);
+      return;
+    }
+    if (!state.selected.size) {
+      rotateAllPages(delta);
       return;
     }
     if (!requireSelection()) return;
@@ -1691,21 +1763,6 @@
   }
 
   function deleteSelection() {
-    if (isOrganizeTool()) {
-      const ids = selectedFileIds();
-      if (!ids.length) {
-        toast("Select a PDF first", true);
-        return;
-      }
-      pushHistory();
-      state.pages = state.pages.filter((page) => ids.indexOf(page.fileId) === -1);
-      state.selected.clear();
-      if (state.current >= state.pages.length) state.current = Math.max(0, state.pages.length - 1);
-      rerender("all");
-      toast("Removed " + ids.length + " PDF" + (ids.length > 1 ? "s" : ""));
-      markSaved();
-      return;
-    }
     if (!requireSelection()) return;
     pushHistory();
     const indices = selectedIndices();
@@ -1717,11 +1774,16 @@
     markSaved();
   }
 
-  function zoomBy(delta) {
-    state.zoom = Math.min(2.4, Math.max(0.4, +(state.zoom + delta).toFixed(2)));
+  function setZoom(value) {
+    state.zoom = Math.min(1.6, Math.max(0.4, +Number(value).toFixed(2)));
     el.zoomLabel.textContent = Math.round(state.zoom * 100) + "%";
+    const slider = document.getElementById("zoomSlider");
+    if (slider) slider.value = String(Math.round(state.zoom * 100));
     renderStack();
-    markSaved();
+  }
+
+  function zoomBy(delta) {
+    setZoom(state.zoom + delta);
   }
 
   function scrollToPage(index) {
@@ -1748,10 +1810,10 @@
     watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
     sign: { title: "Sign Document", hint: "Draw a signature and place it on a page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
-    rotate: { title: "Rotate PDF", hint: "Select a PDF, then rotate every page in that file.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page", action: "Rotate & download" },
-    split: { title: "Split PDF", hint: "Keep the PDF as one file, then split it after a page number.", chips: [], page: ["split"], file: ["info", "files"], tab: "page", action: "Split PDF" },
-    merge: { title: "Merge PDF", hint: "Drag PDF cards to set the order, then merge them into one file.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file", action: "Merge PDF" },
-    compress: { title: "Compress PDF", hint: "Keep PDFs as files here, then compress the selected document.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file", action: "Compress PDF" },
+    rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page", action: "Rotate & download" },
+    split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page", action: "Split PDF" },
+    merge: { title: "Merge PDF", hint: "Drag pages to set the order, then merge into one PDF.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file", action: "Merge PDF" },
+    compress: { title: "Compress PDF", hint: "Review pages, then compress and download.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file", action: "Compress PDF" },
     protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
     convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
     "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
@@ -1787,9 +1849,11 @@
     if (isOrganizeTool()) document.documentElement.setAttribute("data-layout", "cards");
     else document.documentElement.removeAttribute("data-layout");
     const railLabel = document.querySelector(".ws-rail-head span");
-    if (railLabel) railLabel.textContent = isOrganizeTool() ? "PDFs" : "Pages";
+    if (railLabel) railLabel.textContent = "Pages";
     const pageNav = document.getElementById("pageNavGroup");
     if (pageNav) pageNav.hidden = isOrganizeTool();
+    const commandBar = document.getElementById("commandBar");
+    if (commandBar) commandBar.hidden = !isOrganizeTool();
     updateActionDock();
 
     const workspace = WORKSPACES[key];
@@ -1931,10 +1995,6 @@
 
     document.getElementById("selectAllPages").addEventListener("click", () => {
       if (!state.pages.length) return;
-      if (isOrganizeTool()) {
-        orderedFileIds().forEach((id) => selectFile(id, true));
-        return;
-      }
       state.selected = new Set(state.pages.map((_, i) => i));
       applySelectionClasses();
       updateSelectionInfo();
@@ -1945,6 +2005,43 @@
     if (dockAdd) dockAdd.addEventListener("click", () => el.fileInput.click());
     const primaryAction = document.getElementById("primaryActionBtn");
     if (primaryAction) primaryAction.addEventListener("click", () => runPrimaryAction());
+
+    const cmdAdd = document.getElementById("cmdAdd");
+    if (cmdAdd) cmdAdd.addEventListener("click", () => el.fileInput.click());
+    const cmdSelectAll = document.getElementById("cmdSelectAll");
+    if (cmdSelectAll) cmdSelectAll.addEventListener("click", () => {
+      if (!state.pages.length) return;
+      state.selected = new Set(state.pages.map((_, i) => i));
+      applySelectionClasses();
+      updateSelectionInfo();
+      updateMeta();
+    });
+    const cmdDeselect = document.getElementById("cmdDeselect");
+    if (cmdDeselect) cmdDeselect.addEventListener("click", () => {
+      state.selected.clear();
+      applySelectionClasses();
+      updateSelectionInfo();
+    });
+    const cmdRotateAll = document.getElementById("cmdRotateAll");
+    if (cmdRotateAll) cmdRotateAll.addEventListener("click", () => rotateAllPages(90));
+    const cmdDelete = document.getElementById("cmdDelete");
+    if (cmdDelete) cmdDelete.addEventListener("click", deleteSelection);
+
+    const zoomSlider = document.getElementById("zoomSlider");
+    if (zoomSlider) {
+      zoomSlider.addEventListener("input", () => setZoom(parseInt(zoomSlider.value, 10) / 100));
+    }
+
+    const lightboxClose = document.getElementById("lightboxClose");
+    if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
+    const lightboxPrev = document.getElementById("lightboxPrev");
+    if (lightboxPrev) lightboxPrev.addEventListener("click", () => openLightbox(Math.max(0, state.current - 1)));
+    const lightboxNext = document.getElementById("lightboxNext");
+    if (lightboxNext) lightboxNext.addEventListener("click", () => openLightbox(Math.min(state.pages.length - 1, state.current + 1)));
+    const lightbox = document.getElementById("lightbox");
+    if (lightbox) lightbox.addEventListener("click", (e) => {
+      if (e.target === lightbox) closeLightbox();
+    });
 
     document.querySelectorAll(".ws-tab").forEach((tab) => {
       tab.addEventListener("click", () => {
@@ -2014,7 +2111,10 @@
   function bindKeyboard() {
     document.addEventListener("keydown", (e) => {
       if (e.target.matches("input, textarea, select")) return;
-      if (e.key === "Escape") closeModal();
+      if (e.key === "Escape") {
+        closeLightbox();
+        closeModal();
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         deleteSelection();
