@@ -240,11 +240,9 @@ svg { display: block; }
   display: none;
 }
 html[data-tool="edit"] .ws-chip:not([data-mode="text"]):not([data-mode="erase"]),
-html[data-tool="annotate"] .ws-chip:not([data-mode="text"]):not([data-mode="erase"]),
 html[data-tool="watermark"] .ws-chip:not([data-mode="text"]):not([data-mode="image"]):not([data-mode="erase"]),
 html[data-tool="image"] .ws-chip:not([data-mode="image"]):not([data-mode="erase"]),
-html[data-tool="sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]),
-html[data-tool="request-sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]) {
+html[data-tool="sign"] .ws-chip:not([data-mode="sign"]):not([data-mode="erase"]) {
   display: none !important;
 }
 html[data-tool="rotate"] .ws-canvas-toolbar,
@@ -471,11 +469,9 @@ html[data-tool=""] .ws-panel-block {
   display: block;
 }
 html[data-tool="edit"] .ws-panel-block[data-scope="edit"],
-html[data-tool="annotate"] .ws-panel-block[data-scope="edit"],
 html[data-tool="watermark"] .ws-panel-block[data-scope="watermark"],
 html[data-tool="image"] .ws-panel-block[data-scope="image"],
 html[data-tool="sign"] .ws-panel-block[data-scope="sign"],
-html[data-tool="request-sign"] .ws-panel-block[data-scope="sign"],
 html[data-tool="rotate"] .ws-panel-block[data-scope="rotate"],
 html[data-tool="split"] .ws-panel-block[data-scope="split"],
 html[data-tool="merge"] .ws-panel-block[data-scope="merge"],
@@ -492,11 +488,9 @@ html[data-tool] .ws-panel-block[data-scope="files"] {
 }
 .ws-panel-block[hidden] { display: none !important; }
 html[data-tool="edit"] .ws-tab-body[data-body="page"],
-html[data-tool="annotate"] .ws-tab-body[data-body="page"],
 html[data-tool="watermark"] .ws-tab-body[data-body="page"],
 html[data-tool="image"] .ws-tab-body[data-body="page"],
 html[data-tool="sign"] .ws-tab-body[data-body="page"],
-html[data-tool="request-sign"] .ws-tab-body[data-body="page"],
 html[data-tool="compress"] .ws-tab-body[data-body="page"],
 html[data-tool="protect"] .ws-tab-body[data-body="page"],
 html[data-tool="convert"] .ws-tab-body[data-body="page"],
