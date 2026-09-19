@@ -382,7 +382,7 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-cover {
   background: #f4f8fb;
-  min-height: 148px;
+  min-height: 128px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -444,7 +444,7 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-act:hover { background: #d7eefb; }
 .ws-add-card {
-  min-height: 220px;
+  min-height: 176px;
   border: 2px dashed #b7d7e8;
   border-radius: 16px;
   background: rgba(255,255,255,.72);
@@ -528,7 +528,7 @@ html[data-layout="cards"] .ws-page {
   to { opacity: 1; transform: none; }
 }
 .ws-thumb-card .ws-card-cover {
-  min-height: 190px;
+  min-height: 148px;
   background: #eef5fa;
 }
 .ws-thumb-card .ws-hover-bar {
