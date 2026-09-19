@@ -2084,7 +2084,7 @@
     const pageNav = document.getElementById("pageNavGroup");
     if (pageNav) pageNav.hidden = isOrganizeTool();
     const commandBar = document.getElementById("commandBar");
-    if (commandBar) commandBar.hidden = !isOrganizeTool();
+    if (commandBar) commandBar.hidden = true;
     updateActionDock();
 
     const workspace = WORKSPACES[key];
@@ -2147,15 +2147,7 @@
 
   function updateActionDock() {
     const dock = document.getElementById("actionDock");
-    const primary = document.getElementById("primaryActionBtn");
-    if (!dock || !primary) return;
-    const workspace = WORKSPACES[state.selectedTool];
-    if (isOrganizeTool() && workspace && workspace.action) {
-      dock.hidden = false;
-      primary.textContent = workspace.action;
-    } else {
-      dock.hidden = true;
-    }
+    if (dock) dock.hidden = true;
   }
 
   function runPrimaryAction() {
