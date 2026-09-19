@@ -356,6 +356,13 @@ html[data-layout="cards"] .ws-page {
   width: 100%;
   height: auto;
 }
+.ws-page-card .ws-card-cover canvas {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
 .ws-page-card .ws-page-badge {
   font-size: 10.5px;
   padding: 2px 7px;
@@ -382,7 +389,9 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-cover {
   background: #f4f8fb;
-  min-height: 128px;
+  height: 108px;
+  min-height: 108px;
+  max-height: 108px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -390,6 +399,11 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-cover canvas {
   display: block;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 .ws-card-order {
   position: absolute;
@@ -444,7 +458,7 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-act:hover { background: #d7eefb; }
 .ws-add-card {
-  min-height: 176px;
+  min-height: 154px;
   border: 2px dashed #b7d7e8;
   border-radius: 16px;
   background: rgba(255,255,255,.72);
@@ -528,7 +542,9 @@ html[data-layout="cards"] .ws-page {
   to { opacity: 1; transform: none; }
 }
 .ws-thumb-card .ws-card-cover {
-  min-height: 148px;
+  height: 118px;
+  min-height: 118px;
+  max-height: 118px;
   background: #eef5fa;
 }
 .ws-thumb-card .ws-hover-bar {
