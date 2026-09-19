@@ -640,6 +640,8 @@
       wrap.className = "ws-page ws-page-card ws-file-card";
       wrap.dataset.fileId = String(fileId);
 
+      const sheet = document.createElement("div");
+      sheet.className = "ws-card-sheet";
       const cover = document.createElement("div");
       cover.className = "ws-card-cover";
       if (firstPage) {
@@ -648,64 +650,36 @@
         canvas.style.height = "auto";
         cover.appendChild(canvas);
       }
-      wrap.appendChild(cover);
+      sheet.appendChild(cover);
 
-      const order = document.createElement("span");
-      order.className = "ws-card-order";
-      order.textContent = String(n + 1);
-      wrap.appendChild(order);
+      const hover = document.createElement("div");
+      hover.className = "ws-file-hover";
+      const rotateBtn = document.createElement("button");
+      rotateBtn.type = "button";
+      rotateBtn.title = "Rotate";
+      rotateBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.2-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      rotateBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        selectFile(fileId, false);
+        rotateSelection(90);
+      });
+      hover.appendChild(rotateBtn);
+      hover.appendChild(makeRemoveBtn(() => removeFile(fileId)));
+      sheet.appendChild(hover);
 
-      const badge = document.createElement("span");
-      badge.className = "ws-page-badge";
-      badge.textContent = pages.length + " page" + (pages.length === 1 ? "" : "s");
-      wrap.appendChild(badge);
+      const stats = document.createElement("span");
+      stats.className = "ws-file-stats";
+      stats.textContent = formatSize(file.size) + " - " + pages.length + " page" + (pages.length === 1 ? "" : "s");
+      wrap.appendChild(stats);
+      wrap.appendChild(sheet);
 
       const meta = document.createElement("div");
       meta.className = "ws-card-meta";
       const caption = document.createElement("span");
       caption.className = "ws-card-caption";
       caption.textContent = file.name;
-      const size = document.createElement("span");
-      size.className = "ws-card-size";
-      size.textContent = formatSize(file.size);
-      meta.append(caption, size);
+      meta.appendChild(caption);
       wrap.appendChild(meta);
-
-      if (state.selectedTool === "rotate") {
-        const rot = firstPage ? totalRotation(firstPage) : 0;
-        if (rot) {
-          const rotBadge = document.createElement("span");
-          rotBadge.className = "ws-thumb-rot";
-          rotBadge.textContent = rot + "\u00b0";
-          wrap.appendChild(rotBadge);
-        }
-        const row = document.createElement("div");
-        row.className = "ws-card-actions";
-        const left = document.createElement("button");
-        left.type = "button";
-        left.className = "ws-card-act";
-        left.title = "Rotate left";
-        left.textContent = "Left";
-        left.addEventListener("click", (e) => {
-          e.stopPropagation();
-          selectFile(fileId, false);
-          rotateSelection(-90);
-        });
-        const right = document.createElement("button");
-        right.type = "button";
-        right.className = "ws-card-act";
-        right.title = "Rotate right";
-        right.textContent = "Right";
-        right.addEventListener("click", (e) => {
-          e.stopPropagation();
-          selectFile(fileId, false);
-          rotateSelection(90);
-        });
-        row.append(left, right);
-        wrap.appendChild(row);
-      }
-
-      wrap.appendChild(makeRemoveBtn(() => removeFile(fileId)));
       wrap.addEventListener("click", (e) => {
         selectFile(fileId, e.shiftKey || e.metaKey || e.ctrlKey);
       });
@@ -713,13 +687,16 @@
       el.pageStack.appendChild(wrap);
     }
 
-    const adder = document.createElement("button");
-    adder.type = "button";
-    adder.className = "ws-add-card";
-    adder.innerHTML = "<span>+</span><b>Add PDF</b><em>or drop files here</em>";
-    adder.addEventListener("click", () => el.fileInput.click());
-    el.pageStack.appendChild(adder);
+    if (!isFileCardTool()) {
+      const adder = document.createElement("button");
+      adder.type = "button";
+      adder.className = "ws-add-card";
+      adder.innerHTML = "<span>+</span><b>Add PDF</b><em>or drop files here</em>";
+      adder.addEventListener("click", () => el.fileInput.click());
+      el.pageStack.appendChild(adder);
+    }
     applySelectionClasses();
+    updateAddFab();
   }
 
   function hoverAction(label, svg, onClick) {
@@ -967,6 +944,7 @@
     }
     updateMeta();
     updateSelectionInfo();
+    updateAddFab();
   }
 
   /* ================= selection ================= */
@@ -2034,7 +2012,7 @@
     sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
     rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page", action: "Rotate & download" },
     split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page", action: "Split PDF" },
-    merge: { title: "Merge PDF", hint: "Drag pages to set the order, then merge into one PDF.", chips: [], page: ["arrange"], file: ["merge", "info", "files"], tab: "file", action: "Merge PDF" },
+    merge: { title: "Merge PDF", hint: "To change the order of your PDFs, drag and drop the files as you want.", chips: [], page: [], file: [], tab: "file", action: "Merge PDF" },
     compress: { title: "Compress PDF", hint: "Review pages, then compress and download.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file", action: "Compress PDF" },
     protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
     convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
@@ -2148,6 +2126,28 @@
   function updateActionDock() {
     const dock = document.getElementById("actionDock");
     if (dock) dock.hidden = true;
+    const foot = document.getElementById("panelFoot");
+    const label = document.getElementById("panelActionLabel");
+    const workspace = WORKSPACES[state.selectedTool];
+    if (foot && label && workspace && workspace.action) {
+      foot.hidden = false;
+      label.textContent = workspace.action;
+    } else if (foot) {
+      foot.hidden = true;
+    }
+    updateAddFab();
+  }
+
+  function updateAddFab() {
+    const fab = document.getElementById("addFab");
+    const count = document.getElementById("addFabCount");
+    if (!fab) return;
+    if (isFileCardTool() && state.pages.length) {
+      fab.hidden = false;
+      if (count) count.textContent = String(orderedFileIds().length);
+    } else {
+      fab.hidden = true;
+    }
   }
 
   function runPrimaryAction() {
@@ -2188,6 +2188,10 @@
     if (downloadBtn) downloadBtn.addEventListener("click", () => exportPdf());
     const addMoreBtn = document.getElementById("addMoreBtn");
     if (addMoreBtn) addMoreBtn.addEventListener("click", () => el.fileInput.click());
+    const addFab = document.getElementById("addFab");
+    if (addFab) addFab.addEventListener("click", () => el.fileInput.click());
+    const panelAction = document.getElementById("panelActionBtn");
+    if (panelAction) panelAction.addEventListener("click", () => runPrimaryAction());
     el.fileName.addEventListener("input", markSaved);
   }
 

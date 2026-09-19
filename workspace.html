@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=21" />
+<link rel="stylesheet" href="workspace.css?v=23" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -82,8 +82,8 @@
 
   <div class="ws-topbar-right">
     <span class="ws-saved" id="savedBadge">All changes saved</span>
-    <button type="button" class="ws-btn ws-btn-ghost" id="addMoreBtn">Add files</button>
-    <button type="button" class="ws-btn ws-btn-primary" id="downloadBtn">Download</button>
+    <button type="button" class="ws-btn ws-btn-ghost" id="addMoreBtn" hidden>Add files</button>
+    <button type="button" class="ws-btn ws-btn-primary" id="downloadBtn" hidden>Download</button>
   </div>
 </header>
 
@@ -144,6 +144,12 @@
       <button type="button" class="ws-btn ws-btn-ghost" id="dockAddBtn">Add PDF files</button>
       <button type="button" class="ws-btn ws-btn-primary" id="primaryActionBtn">Merge PDF</button>
     </div>
+
+    <button type="button" class="ws-add-fab" id="addFab" hidden aria-label="Add more files">
+      <span class="ws-add-fab-count" id="addFabCount">0</span>
+      <span class="ws-add-fab-plus">+</span>
+      <span class="ws-add-fab-tip">Add more files</span>
+    </button>
 
     <div class="ws-hint" id="dropHint">
       <svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7 9m5-5l5 5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -371,6 +377,12 @@
         <ul class="ws-files" id="wsFileList"></ul>
       </div>
     </div>
+    <div class="ws-panel-foot" id="panelFoot" hidden>
+      <button type="button" class="ws-panel-action" id="panelActionBtn">
+        <span id="panelActionLabel">Merge PDF</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M10 8l6 4-6 4" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
   </aside>
 </div>
 
@@ -415,6 +427,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=21"></script>
+<script src="workspace.js?v=23"></script>
 </body>
 </html>
