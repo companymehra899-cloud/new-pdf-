@@ -322,7 +322,7 @@ html[data-layout="cards"] .ws-page-stack,
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
   align-content: start;
-  align-items: start;
+  align-items: stretch;
   justify-items: stretch;
   gap: 18px;
   width: 100%;
@@ -368,26 +368,21 @@ html[data-layout="cards"] .ws-page {
 .ws-file-card .ws-page-badge {
   opacity: 0;
   pointer-events: none;
-  transition: opacity .16s;
 }
 .ws-file-card:hover .ws-page-badge {
   opacity: 1;
 }
 .ws-page-card.is-dragging {
-  opacity: .42;
+  opacity: .45;
   cursor: grabbing;
 }
 .ws-page-card.is-drop-target {
   border-color: var(--ws-teal);
-}
-.ws-page-stack.is-sorting .ws-page,
-.ws-page-stack.is-sorting .ws-page-card {
-  transition: none;
+  box-shadow: 0 0 0 4px rgba(43,179,230,.2);
 }
 .ws-card-cover {
   background: #f4f8fb;
-  height: 128px;
-  min-height: 128px;
+  min-height: 148px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -395,9 +390,6 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-cover canvas {
   display: block;
-  max-height: 100%;
-  width: auto;
-  object-fit: contain;
 }
 .ws-card-order {
   position: absolute;
@@ -452,7 +444,7 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-act:hover { background: #d7eefb; }
 .ws-add-card {
-  min-height: 176px;
+  min-height: 220px;
   border: 2px dashed #b7d7e8;
   border-radius: 16px;
   background: rgba(255,255,255,.72);
@@ -529,14 +521,14 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-thumb-card {
   overflow: hidden;
+  animation: ws-card-in .22s ease-out;
 }
 @keyframes ws-card-in {
   from { opacity: 0; transform: translateY(8px) scale(.98); }
   to { opacity: 1; transform: none; }
 }
 .ws-thumb-card .ws-card-cover {
-  height: 148px;
-  min-height: 148px;
+  min-height: 190px;
   background: #eef5fa;
 }
 .ws-thumb-card .ws-hover-bar {
