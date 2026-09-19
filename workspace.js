@@ -575,19 +575,26 @@
     node.draggable = true;
     node.addEventListener("dragstart", (e) => {
       node.classList.add("is-dragging");
+      el.pageStack.classList.add("is-sorting");
       e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", payload);
+      e.dataTransfer.setData("text/plain", node.dataset.index || node.dataset.fileId || payload);
     });
     node.addEventListener("dragend", () => {
       node.classList.remove("is-dragging");
+      el.pageStack.classList.remove("is-sorting");
       document.querySelectorAll(".is-drop-target").forEach((n) => n.classList.remove("is-drop-target"));
     });
     node.addEventListener("dragover", (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
-      node.classList.add("is-drop-target");
+      if (!node.classList.contains("is-drop-target")) {
+        document.querySelectorAll(".is-drop-target").forEach((n) => n.classList.remove("is-drop-target"));
+        node.classList.add("is-drop-target");
+      }
     });
-    node.addEventListener("dragleave", () => node.classList.remove("is-drop-target"));
+    node.addEventListener("dragleave", (e) => {
+      if (!node.contains(e.relatedTarget)) node.classList.remove("is-drop-target");
+    });
     node.addEventListener("drop", (e) => {
       e.preventDefault();
       node.classList.remove("is-drop-target");
@@ -608,6 +615,21 @@
     if (fromIndex < toIndex) toIndex -= 1;
     state.pages.splice(toIndex, 0, item);
     state.selected = new Set([toIndex]);
+    const fromNode = el.pageStack.querySelector('.ws-page[data-index="' + fromIndex + '"]');
+    const toNode = el.pageStack.querySelector('.ws-page[data-index="' + toIndex + '"]');
+    if (fromNode && toNode) {
+      if (fromIndex < toIndex) el.pageStack.insertBefore(fromNode, toNode.nextSibling);
+      else el.pageStack.insertBefore(fromNode, toNode);
+      el.pageStack.querySelectorAll(".ws-page[data-index]").forEach((card, i) => {
+        card.dataset.index = String(i);
+        const num = card.querySelector(".ws-page-num");
+        if (num) num.textContent = String(i + 1);
+      });
+      applySelectionClasses();
+      updateMeta();
+      markSaved();
+      return;
+    }
     rerender("all");
     markSaved();
   }
@@ -623,6 +645,15 @@
     if (insertAt < 0) insertAt = remaining.length;
     remaining.splice(insertAt, 0, ...moving);
     state.pages = remaining;
+    const fromNode = el.pageStack.querySelector('.ws-file-card[data-file-id="' + fromId + '"]');
+    const toNode = el.pageStack.querySelector('.ws-file-card[data-file-id="' + toId + '"]');
+    if (fromNode && toNode) {
+      el.pageStack.insertBefore(fromNode, toNode);
+      applySelectionClasses();
+      updateMeta();
+      markSaved();
+      return;
+    }
     rerender("all");
     markSaved();
   }
@@ -790,7 +821,7 @@
         e.preventDefault();
         openLightbox(i);
       });
-      bindCardDrag(wrap, String(i), (from) => movePageTo(from, i));
+      bindCardDrag(wrap, String(i), (from) => movePageTo(from, wrap.dataset.index));
       el.pageStack.appendChild(wrap);
     }
 
