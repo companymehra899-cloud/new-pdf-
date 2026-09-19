@@ -442,16 +442,16 @@
     }
   }
 
-  function isOrganizeTool() {
-    return ["merge", "split", "rotate", "compress"].indexOf(state.selectedTool) !== -1;
+  function isFileCardTool() {
+    return ["merge", "compress", "repair", "unlock"].indexOf(state.selectedTool) !== -1;
   }
 
   function isPageCardTool() {
-    return isOrganizeTool();
+    return ["split", "remove", "extract", "organize", "rotate", "crop", "edit"].indexOf(state.selectedTool) !== -1;
   }
 
-  function isFileCardTool() {
-    return false;
+  function isOrganizeTool() {
+    return isFileCardTool() || isPageCardTool();
   }
 
   function filePages(fileId) {
@@ -1952,7 +1952,7 @@
   }
 
   function moveSelection(direction) {
-    if (isOrganizeTool()) {
+    if (isFileCardTool()) {
       const ids = orderedFileIds();
       const selected = selectedFileIds();
       if (!selected.length) {
