@@ -575,19 +575,26 @@
     node.draggable = true;
     node.addEventListener("dragstart", (e) => {
       node.classList.add("is-dragging");
+      el.pageStack.classList.add("is-sorting");
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", payload);
     });
     node.addEventListener("dragend", () => {
       node.classList.remove("is-dragging");
+      el.pageStack.classList.remove("is-sorting");
       document.querySelectorAll(".is-drop-target").forEach((n) => n.classList.remove("is-drop-target"));
     });
     node.addEventListener("dragover", (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = "move";
-      node.classList.add("is-drop-target");
+      if (!node.classList.contains("is-drop-target")) {
+        document.querySelectorAll(".is-drop-target").forEach((n) => n.classList.remove("is-drop-target"));
+        node.classList.add("is-drop-target");
+      }
     });
-    node.addEventListener("dragleave", () => node.classList.remove("is-drop-target"));
+    node.addEventListener("dragleave", (e) => {
+      if (!node.contains(e.relatedTarget)) node.classList.remove("is-drop-target");
+    });
     node.addEventListener("drop", (e) => {
       e.preventDefault();
       node.classList.remove("is-drop-target");
@@ -608,6 +615,23 @@
     if (fromIndex < toIndex) toIndex -= 1;
     state.pages.splice(toIndex, 0, item);
     state.selected = new Set([toIndex]);
+    const fromNode = el.pageStack.querySelector('.ws-page[data-index="' + fromIndex + '"]');
+    const toNode = el.pageStack.querySelector('.ws-page[data-index="' + toIndex + '"]');
+    if (fromNode && toNode && fromNode !== toNode) {
+      if (fromIndex < toIndex) el.pageStack.insertBefore(fromNode, toNode.nextSibling);
+      else el.pageStack.insertBefore(fromNode, toNode);
+      el.pageStack.querySelectorAll(".ws-page[data-index]").forEach((card, i) => {
+        card.dataset.index = String(i);
+        const num = card.querySelector(".ws-page-num, .ws-card-caption");
+        if (num && card.querySelector(".ws-page-num")) num.textContent = String(i + 1);
+        const caption = card.querySelector(".ws-card-caption");
+        if (caption) caption.textContent = "Page " + (i + 1);
+      });
+      applySelectionClasses();
+      updateMeta();
+      markSaved();
+      return;
+    }
     rerender("all");
     markSaved();
   }
@@ -623,6 +647,15 @@
     if (insertAt < 0) insertAt = remaining.length;
     remaining.splice(insertAt, 0, ...moving);
     state.pages = remaining;
+    const fromNode = el.pageStack.querySelector('.ws-file-card[data-file-id="' + fromId + '"]');
+    const toNode = el.pageStack.querySelector('.ws-file-card[data-file-id="' + toId + '"]');
+    if (fromNode && toNode && fromNode !== toNode) {
+      el.pageStack.insertBefore(fromNode, toNode);
+      applySelectionClasses();
+      updateMeta();
+      markSaved();
+      return;
+    }
     rerender("all");
     markSaved();
   }
@@ -724,40 +757,35 @@
       wrap.className = "ws-page ws-page-card ws-thumb-card";
       wrap.dataset.index = String(i);
 
+      const sheet = document.createElement("div");
+      sheet.className = "ws-card-sheet";
       const cover = document.createElement("div");
       cover.className = "ws-card-cover";
       const canvas = await renderPageCanvas(entry, scale);
       canvas.style.width = "100%";
       canvas.style.height = "auto";
       cover.appendChild(canvas);
-      wrap.appendChild(cover);
-
-      const check = document.createElement("span");
-      check.className = "ws-card-check";
-      check.innerHTML = '<svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      wrap.appendChild(check);
+      sheet.appendChild(cover);
 
       const hover = document.createElement("div");
-      hover.className = "ws-hover-bar";
-      hover.appendChild(hoverAction("Rotate left", '<svg viewBox="0 0 24 24"><path d="M8 7h7a5 5 0 1 1 0 10H9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M11 4L8 7l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => rotateOne(i, -90)));
-      hover.appendChild(hoverAction("Rotate right", '<svg viewBox="0 0 24 24"><path d="M16 7H9a5 5 0 1 0 0 10h6" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13 4l3 3-3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => rotateOne(i, 90)));
-      hover.appendChild(hoverAction("Preview", '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M16 16l5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => openLightbox(i)));
-      hover.appendChild(hoverAction("Duplicate", '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 16V6h10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => duplicatePage(i)));
-      hover.appendChild(hoverAction("Delete", '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 11v6M14 11v6M9 7V5h6v2M6 7l1 12h10l1-12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>', () => deleteOne(i)));
-      wrap.appendChild(hover);
+      hover.className = "ws-file-hover";
+      const rotateBtn = document.createElement("button");
+      rotateBtn.type = "button";
+      rotateBtn.title = "Rotate";
+      rotateBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.2-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      rotateBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        rotateOne(i, 90);
+      });
+      hover.appendChild(rotateBtn);
+      hover.appendChild(makeRemoveBtn(() => deleteOne(i)));
+      sheet.appendChild(hover);
+      wrap.appendChild(sheet);
 
-      const num = document.createElement("span");
-      num.className = "ws-page-num";
-      num.textContent = String(i + 1);
-      wrap.appendChild(num);
-
-      const rot = totalRotation(entry);
-      if (rot) {
-        const rotBadge = document.createElement("span");
-        rotBadge.className = "ws-thumb-rot";
-        rotBadge.textContent = rot + "\u00b0";
-        wrap.appendChild(rotBadge);
-      }
+      const caption = document.createElement("span");
+      caption.className = "ws-card-caption";
+      caption.textContent = "Page " + (i + 1);
+      wrap.appendChild(caption);
 
       wrap.addEventListener("click", (e) => {
         if (e.target.closest(".ws-hover-bar")) return;
@@ -767,17 +795,11 @@
         e.preventDefault();
         openLightbox(i);
       });
-      bindCardDrag(wrap, String(i), (from) => movePageTo(from, i));
+      bindCardDrag(wrap, String(i), (from) => movePageTo(from, wrap.dataset.index));
       el.pageStack.appendChild(wrap);
     }
-
-    const adder = document.createElement("button");
-    adder.type = "button";
-    adder.className = "ws-add-card";
-    adder.innerHTML = "<span>+</span><b>Add files</b><em>or drop PDFs here</em>";
-    adder.addEventListener("click", () => el.fileInput.click());
-    el.pageStack.appendChild(adder);
     applySelectionClasses();
+    updateAddFab();
   }
 
   function rotateOne(index, delta) {
@@ -2010,23 +2032,23 @@
     watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
     sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
-    rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: ["info", "files"], tab: "page", action: "Rotate & download" },
-    split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: ["info", "files"], tab: "page", action: "Split PDF" },
+    rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: [], tab: "page", action: "Rotate PDF" },
+    split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: [], tab: "page", action: "Split PDF" },
     merge: { title: "Merge PDF", hint: "To change the order of your PDFs, drag and drop the files as you want.", chips: [], page: [], file: [], tab: "file", action: "Merge PDF" },
-    compress: { title: "Compress PDF", hint: "Review pages, then compress and download.", chips: [], page: [], file: ["compress", "info", "files"], tab: "file", action: "Compress PDF" },
+    compress: { title: "Compress PDF", hint: "Review files, then compress and download.", chips: [], page: [], file: [], tab: "file", action: "Compress PDF" },
     protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
     convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
     "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
     "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
     "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["pdf-word", "info", "files"], tab: "file" },
     "html-pdf": { title: "HTML to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["html-pdf", "info", "files"], tab: "file" },
-    unlock: { title: "Unlock PDF", hint: "Download a copy without the password if the file opened.", chips: [], page: [], file: ["unlock", "info", "files"], tab: "file" },
-    organize: { title: "Organize PDF", hint: "Sort, delete or rearrange pages.", chips: [], page: ["arrange", "delete"], file: ["info", "files"], tab: "page" },
-    extract: { title: "Extract pages", hint: "Select pages, then extract them into a new PDF.", chips: [], page: ["extract"], file: ["info", "files"], tab: "page" },
-    remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: ["info", "files"], tab: "page" },
-    repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: ["repair", "info", "files"], tab: "file" },
+    unlock: { title: "Unlock PDF", hint: "Download a copy without the password if the file opened.", chips: [], page: [], file: [], tab: "file", action: "Unlock PDF" },
+    organize: { title: "Organize PDF", hint: "Sort, delete or rearrange pages.", chips: [], page: ["arrange", "delete"], file: [], tab: "page", action: "Download PDF" },
+    extract: { title: "Extract pages", hint: "Select pages, then extract them into a new PDF.", chips: [], page: ["extract"], file: [], tab: "page", action: "Extract PDF" },
+    remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: [], tab: "page", action: "Remove pages" },
+    repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: [], tab: "file", action: "Repair PDF" },
     pagenumbers: { title: "Page numbers", hint: "Stamp a page number on every page.", chips: [], page: [], file: ["pagenumbers", "info", "files"], tab: "file" },
-    crop: { title: "Crop PDF", hint: "Trim equal margins from selected pages.", chips: [], page: [], file: ["crop", "info", "files"], tab: "file" },
+    crop: { title: "Crop PDF", hint: "Trim equal margins from selected pages.", chips: [], page: ["crop"], file: [], tab: "page", action: "Crop PDF" },
     redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image" },
   };
 
@@ -2142,9 +2164,9 @@
     const fab = document.getElementById("addFab");
     const count = document.getElementById("addFabCount");
     if (!fab) return;
-    if (isFileCardTool() && state.pages.length) {
+    if (isOrganizeTool() && state.pages.length) {
       fab.hidden = false;
-      if (count) count.textContent = String(orderedFileIds().length);
+      if (count) count.textContent = String(isFileCardTool() ? orderedFileIds().length : state.pages.length);
     } else {
       fab.hidden = true;
     }
