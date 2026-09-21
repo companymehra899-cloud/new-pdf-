@@ -282,6 +282,80 @@ html[data-tool="crop"] .ws-canvas-toolbar {
   box-shadow: 0 6px 14px rgba(229,50,45,.26);
 }
 
+/* ====== EDIT TOOLBAR ====== */
+.ws-edit-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  background: #fff;
+  border-bottom: 1px solid var(--ws-line);
+  box-shadow: 0 6px 18px rgba(31, 41, 51, .06);
+  z-index: 6;
+}
+.ws-edit-toolbar[hidden] { display: none; }
+.ws-edit-group { display: flex; align-items: center; gap: 6px; }
+.ws-edit-sep { width: 1px; height: 24px; background: var(--ws-line); margin: 0 4px; }
+.ws-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #f4f6f8;
+  border: 1px solid #e2e8ee;
+  color: #3c5766;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 8px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.ws-edit-btn svg { width: 16px; height: 16px; }
+.ws-edit-btn:hover { border-color: #f3b6b3; color: var(--ws-teal-dark); }
+.ws-edit-btn.is-active {
+  background: #e5322d;
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(229,50,45,.24);
+}
+.ws-edit-icon {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #f4f6f8;
+  border: 1px solid #e2e8ee;
+  color: #3c5766;
+  font-size: 15px;
+  font-weight: 900;
+}
+.ws-edit-icon svg { width: 18px; height: 18px; }
+.ws-edit-icon:hover { border-color: #f3b6b3; color: var(--ws-teal-dark); }
+.ws-edit-icon.is-active { background: #e5322d; border-color: transparent; color: #fff; }
+.ws-edit-select,
+.ws-edit-num {
+  height: 38px;
+  border: 1px solid #e2e8ee;
+  border-radius: 10px;
+  background: #f4f6f8;
+  color: #3c5766;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 10px;
+}
+.ws-edit-num { width: 66px; }
+.ws-edit-color {
+  width: 38px;
+  height: 38px;
+  padding: 3px;
+  border: 1px solid #e2e8ee;
+  border-radius: 10px;
+  background: #f4f6f8;
+  cursor: pointer;
+}
+
 .ws-canvas {
   flex: 1;
   overflow: auto;
@@ -1147,6 +1221,55 @@ html[data-tool] .ws-tab-body[data-body="file"] {
 .ws-anno-sign {
   transform: none;
   line-height: 0;
+}
+.ws-anno-cover,
+.ws-anno-shape {
+  transform: none;
+  pointer-events: none;
+}
+.ws-anno-shape { box-sizing: border-box; }
+
+/* ====== EDITABLE TEXT LAYER ====== */
+.ws-text-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  overflow: hidden;
+  z-index: 3;
+  pointer-events: none;
+}
+.ws-text-item {
+  position: absolute;
+  display: inline-block;
+  box-sizing: border-box;
+  white-space: pre;
+  line-height: 1;
+  color: transparent;
+  cursor: text;
+  border-radius: 2px;
+  transform-origin: left top;
+  pointer-events: auto;
+}
+.ws-text-item:hover {
+  background: rgba(229, 50, 45, .14);
+  box-shadow: 0 0 0 1px rgba(229, 50, 45, .35);
+  color: transparent;
+}
+.ws-text-edit {
+  position: absolute;
+  z-index: 8;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 1px 3px;
+  line-height: 1.15;
+  color: #101c22;
+  background: #fff;
+  border: 1.5px solid var(--ws-teal);
+  border-radius: 3px;
+  outline: none;
+  resize: none;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px rgba(229,50,45,.16);
 }
 .ws-anno-image img,
 .ws-anno-sign img {

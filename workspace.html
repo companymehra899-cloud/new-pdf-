@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=24" />
+<link rel="stylesheet" href="workspace.css?v=25" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -134,6 +134,61 @@
         <svg viewBox="0 0 24 24"><path d="M8 19h11M6 15l6-6 5 5-5 5H8z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
         Erase
       </button>
+    </div>
+
+    <div class="ws-edit-toolbar" id="editToolbar" hidden>
+      <div class="ws-edit-group">
+        <button type="button" class="ws-edit-btn is-active" data-edit="select" id="editSelect" title="Select">
+          <svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-2 6z" fill="currentColor"/></svg>
+          Select
+        </button>
+        <button type="button" class="ws-edit-btn" data-edit="edit-text" id="editTextBtn" title="Click existing text to edit it">
+          <svg viewBox="0 0 24 24"><path d="M4 20h16M6 16l9-9 3 3-9 9H6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+          Edit text
+        </button>
+        <button type="button" class="ws-edit-btn" data-edit="add-text" id="editAddText" title="Click a page to add text">
+          <svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add text
+        </button>
+      </div>
+
+      <span class="ws-edit-sep"></span>
+
+      <div class="ws-edit-group">
+        <button type="button" class="ws-edit-icon" id="editBold" title="Bold"><b>B</b></button>
+        <select class="ws-edit-select" id="editFont" title="Font">
+          <option value="Helvetica">Helvetica</option>
+          <option value="Times">Times</option>
+          <option value="Courier">Courier</option>
+        </select>
+        <input type="number" class="ws-edit-num" id="editSize" min="4" max="96" value="12" title="Font size" />
+        <input type="color" class="ws-edit-color" id="editColor" value="#16323f" title="Colour" />
+      </div>
+
+      <span class="ws-edit-sep"></span>
+
+      <div class="ws-edit-group">
+        <button type="button" class="ws-edit-btn" data-shape="rect" id="shapeRect" title="Rectangle">
+          <svg viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          Rectangle
+        </button>
+        <button type="button" class="ws-edit-btn" data-shape="square" id="shapeSquare" title="Square">
+          <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          Square
+        </button>
+        <button type="button" class="ws-edit-btn" data-shape="circle" id="shapeCircle" title="Circle">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+          Circle
+        </button>
+      </div>
+
+      <span class="ws-edit-sep"></span>
+
+      <div class="ws-edit-group">
+        <button type="button" class="ws-edit-icon" id="editUndo" title="Undo">
+          <svg viewBox="0 0 24 24"><path d="M8 8H16a4 4 0 1 1 0 8h-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5L8 8l3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
     </div>
 
     <div class="ws-canvas" id="canvasScroll">
@@ -427,6 +482,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=24"></script>
+<script src="workspace.js?v=25"></script>
 </body>
 </html>

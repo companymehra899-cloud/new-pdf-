@@ -19,6 +19,7 @@
     selectedTool: "",
     pendingImage: null,
     pendingSignature: null,
+    edit: { mode: "select", shape: null, bold: false, font: "Helvetica", size: 12, color: "#16323f" },
     history: [],
     future: [],
   };
@@ -175,6 +176,8 @@
         sourceIndex: p.sourceIndex,
         srcRotation: p.srcRotation,
         rotation: p.rotation,
+        cropN: p.cropN,
+        editedItems: p.editedItems,
         annotations: p.annotations,
       }))
     );
@@ -199,9 +202,9 @@
       toast("Nothing to undo");
       return;
     }
-    const current = state.history.pop();
-    state.future.push(current);
-    restore(state.history[state.history.length - 1]);
+    state.future.push(snapshot());
+    const prev = state.history.pop();
+    restore(prev);
     updateHistoryButtons();
   }
 
@@ -210,9 +213,9 @@
       toast("Nothing to redo");
       return;
     }
-    const snap = state.future.pop();
-    state.history.push(snap);
-    restore(snap);
+    const next = state.future.pop();
+    state.history.push(snapshot());
+    restore(next);
     updateHistoryButtons();
   }
 
@@ -316,11 +319,37 @@
     const px = a.nx * viewport.width;
     const py = a.ny * viewport.height;
 
+    if (a.type === "cover") {
+      node.className = "ws-anno ws-anno-cover";
+      node.style.left = px + "px";
+      node.style.top = py + "px";
+      node.style.width = a.wN * viewport.width + "px";
+      node.style.height = a.hN * viewport.height + "px";
+      node.style.background = a.color || "#ffffff";
+      return node;
+    }
+
+    if (a.type === "shape") {
+      node.className = "ws-anno ws-anno-shape";
+      node.style.left = px + "px";
+      node.style.top = py + "px";
+      node.style.width = a.wN * viewport.width + "px";
+      node.style.height = a.hN * viewport.height + "px";
+      node.style.border =
+        Math.max(1, a.strokeWN * viewport.width) + "px solid " + (a.color || "#e5322d");
+      node.style.borderRadius = a.shape === "circle" ? "50%" : "3px";
+      node.style.background = a.fill ? a.fill : "transparent";
+      return node;
+    }
+
     if (a.type === "text") {
       const span = document.createElement("span");
       span.textContent = a.text;
       span.style.fontSize = a.sizeN * viewport.width + "px";
       span.style.color = a.color;
+      span.style.fontFamily = fontFamilyFromName(a.font || "Helvetica");
+      span.style.fontWeight = a.bold ? "700" : "400";
+      span.style.fontStyle = a.italic ? "italic" : "normal";
       node.style.left = px + "px";
       node.style.top = py + "px";
       node.appendChild(span);
@@ -379,6 +408,206 @@
     entry.annotations.forEach((a) => {
       layer.appendChild(annotationElement(a, viewport, BASE_SCALE * state.zoom));
     });
+  }
+
+  /* ================= editable text layer (Edit PDF) ================= */
+
+  function fontFamilyKind(font) {
+    const n = String(font || "").toLowerCase();
+    if (n.indexOf("courier") !== -1 || n.indexOf("mono") !== -1) return "Courier";
+    if (n.indexOf("times") !== -1 || n.indexOf("georgia") !== -1|| n.indexOf("roman") !== -1) return "Times";
+    if (n.indexOf("helvetica") !== -1 || n.indexOf("arial") !== -1 || n.indexOf("sans") !== -1) return "Helvetica";
+    if (n.indexOf("serif") !== -1) return "Times";
+    return "Helvetica";
+  }
+
+  function fontFamilyFromName(name) {
+    const kind = fontFamilyKind(name);
+    if (kind === "Times") return "Times New Roman, Times, serif";
+    if (kind === "Courier") return "Courier New, Courier, monospace";
+    return "Helvetica, Arial, sans-serif";
+  }
+
+  function standardFontKey(font, bold, italic) {
+    return fontFamilyKind(font) + "|" + (bold ? "b" : "") + (italic ? "i" : "");
+  }
+
+  function standardFontName(font, bold, italic) {
+    const fam = fontFamilyKind(font);
+    if (fam === "Times") {
+      if (bold && italic) return PDFLib.StandardFonts.TimesRomanBoldItalic;
+      if (bold) return PDFLib.StandardFonts.TimesRomanBold;
+      if (italic) return PDFLib.StandardFonts.TimesRomanItalic;
+      return PDFLib.StandardFonts.TimesRoman;
+    }
+    if (fam === "Courier") {
+      if (bold && italic) return PDFLib.StandardFonts.CourierBoldOblique;
+      if (bold) return PDFLib.StandardFonts.CourierBold;
+      if (italic) return PDFLib.StandardFonts.CourierOblique;
+      return PDFLib.StandardFonts.Courier;
+    }
+    if (bold && italic) return PDFLib.StandardFonts.HelveticaBoldOblique;
+    if (bold) return PDFLib.StandardFonts.HelveticaBold;
+    if (italic) return PDFLib.StandardFonts.HelveticaOblique;
+    return PDFLib.StandardFonts.Helvetica;
+  }
+
+  async function ensureTextItems(entry) {
+    if (entry.textItems) return entry.textItems;
+    const src = state.sources[entry.fileId];
+    const pj = await src.pdf.getPage(entry.sourceIndex + 1);
+    const viewport = pj.getViewport({ scale: 1, rotation: totalRotation(entry) });
+    const content = await pj.getTextContent();
+    const items = [];
+    content.items.forEach((item) => {
+      const str = item.str;
+      if (!str || !str.trim()) return;
+      const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      const fontHeight = Math.hypot(tx[2], tx[3]);
+      if (!fontHeight) return;
+      const left = tx[4];
+      const top = tx[5] - fontHeight;
+      items.push({
+        str,
+        nx: left / viewport.width,
+        ny: top / viewport.height,
+        nw: ((item.width || 0) * 1) / viewport.width,
+        nh: fontHeight / viewport.height,
+        fontSizeN: fontHeight / viewport.width,
+        font: fontFamilyFromName(item.fontName),
+        bold: /bold|black|heavy|semibold/i.test(item.fontName || ""),
+        italic: /italic|oblique/i.test(item.fontName || ""),
+        color: "#000000",
+      });
+    });
+    entry.textItems = items;
+    entry.editedItems = entry.editedItems || {};
+    return items;
+  }
+
+  function sampleBackground(canvas, nx, ny, nw, nh) {
+    try {
+      const ctx = canvas.getContext("2d");
+      const x = Math.min(canvas.width - 1, Math.max(0, Math.round(nx * canvas.width) + 1));
+      const y = Math.min(canvas.height - 1, Math.max(0, Math.round((ny + nh / 2) * canvas.height)));
+      const d = ctx.getImageData(x, y, 1, 1).data;
+      return "#" + [d[0], d[1], d[2]].map((v) => v.toString(16).padStart(2, "0")).join("");
+    } catch (err) {
+      return "#ffffff";
+    }
+  }
+
+  async function renderEditTextLayer(entry, wrap, canvas) {
+    wrap.querySelectorAll(".ws-text-layer").forEach((n) => n.remove());
+    const layer = document.createElement("div");
+    layer.className = "ws-text-layer";
+    layer.style.width = canvas.width + "px";
+    layer.style.height = canvas.height + "px";
+    const items = await ensureTextItems(entry);
+    const edited = entry.editedItems || {};
+    items.forEach((it, idx) => {
+      if (edited[idx]) return;
+      const span = document.createElement("span");
+      span.className = "ws-text-item";
+      span.textContent = it.str;
+      span.style.left = it.nx * canvas.width + "px";
+      span.style.top = it.ny * canvas.height + "px";
+      span.style.fontSize = it.fontSizeN * canvas.width + "px";
+      span.style.fontFamily = it.font;
+      span.style.fontWeight = it.bold ? "700" : "400";
+      span.style.fontStyle = it.italic ? "italic" : "normal";
+      span.style.width = Math.max(6, it.nw * canvas.width) + "px";
+      span.style.height = Math.max(6, it.nh * canvas.height) + "px";
+      span.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (!isEditTool()) return;
+        beginTextEdit(entry, wrap, canvas, span, idx, it);
+      });
+      layer.appendChild(span);
+    });
+    wrap.appendChild(layer);
+    return layer;
+  }
+
+  function beginTextEdit(entry, wrap, canvas, span, idx, item) {
+    if (wrap.querySelector(".ws-text-edit")) return;
+    const ta = document.createElement("textarea");
+    ta.className = "ws-text-edit";
+    ta.value = item.str;
+    ta.style.left = span.style.left;
+    ta.style.top = span.style.top;
+    ta.style.fontSize = span.style.fontSize;
+    ta.style.fontFamily = span.style.fontFamily;
+    ta.style.fontWeight = span.style.fontWeight;
+    ta.style.fontStyle = span.style.fontStyle;
+    ta.style.width = Math.max(70, parseFloat(span.style.width) + 36) + "px";
+    ta.style.height = Math.max(20, parseFloat(span.style.fontSize) * 1.5) + "px";
+    wrap.appendChild(ta);
+    span.style.visibility = "hidden";
+    ta.focus();
+    ta.select();
+
+    let settled = false;
+    function cancel() {
+      if (settled) return;
+      settled = true;
+      ta.remove();
+      span.style.visibility = "";
+    }
+    function commit() {
+      if (settled) return;
+      settled = true;
+      const value = ta.value;
+      ta.remove();
+      if (value === item.str) {
+        span.style.visibility = "";
+        return;
+      }
+      applyTextReplacement(entry, wrap, canvas, item, value);
+    }
+    ta.addEventListener("blur", commit);
+    ta.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        cancel();
+      } else if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        commit();
+      }
+    });
+  }
+
+  function applyTextReplacement(entry, wrap, canvas, item, value) {
+    pushHistory();
+    const bg = sampleBackground(canvas, item.nx, item.ny, item.nw, item.nh);
+    item.edited = true;
+    entry.editedItems[entry.textItems.indexOf(item)] = true;
+    entry.annotations.push({
+      id: annoSeq++,
+      type: "cover",
+      nx: Math.max(0, item.nx - 0.002),
+      ny: Math.max(0, item.ny - 0.004),
+      wN: Math.max(item.nw, 0.006) + 0.004,
+      hN: Math.max(item.nh, 0.01) + 0.008,
+      color: bg,
+    });
+    entry.annotations.push({
+      id: annoSeq++,
+      type: "text",
+      nx: item.nx,
+      ny: item.ny + item.nh,
+      text: value,
+      sizeN: item.fontSizeN,
+      color: item.color,
+      font: item.font,
+      bold: item.bold,
+      italic: item.italic,
+    });
+    renderAnnotationLayer(entry, wrap);
+    renderEditTextLayer(entry, wrap, canvas);
+    updateMeta();
+    markSaved();
+    toast("Text updated");
   }
 
   async function renderPageCanvas(entry, scale) {
@@ -447,7 +676,11 @@
   }
 
   function isPageCardTool() {
-    return ["split", "remove", "extract", "organize", "rotate", "crop", "edit"].indexOf(state.selectedTool) !== -1;
+    return ["split", "remove", "extract", "organize", "rotate", "crop"].indexOf(state.selectedTool) !== -1;
+  }
+
+  function isEditTool() {
+    return state.selectedTool === "edit";
   }
 
   function isOrganizeTool() {
@@ -909,8 +1142,15 @@
       layer.style.top = "0";
       layer.style.width = canvas.width + "px";
       layer.style.height = canvas.height + "px";
-      layer.addEventListener("click", (e) => handlePageClick(e, i, wrap));
+      layer.addEventListener("click", (e) => {
+        if (isEditTool()) handleEditPageClick(e, i, wrap, canvas);
+        else handlePageClick(e, i, wrap);
+      });
       wrap.appendChild(layer);
+
+      if (isEditTool()) {
+        bindShapeDrawing(entry, wrap, layer);
+      }
 
       const badge = document.createElement("span");
       badge.className = "ws-page-badge";
@@ -918,6 +1158,7 @@
       wrap.appendChild(badge);
 
       wrap.addEventListener("click", (e) => {
+        if (isEditTool()) return;
         if (state.tool !== "select") return;
         if (e.target.closest(".ws-anno")) return;
         selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
@@ -925,8 +1166,115 @@
 
       el.pageStack.appendChild(wrap);
       await renderAnnotationLayer(entry, wrap);
+      if (isEditTool()) {
+        try {
+          await renderEditTextLayer(entry, wrap, canvas);
+        } catch (err) {
+          console.error(err);
+        }
+      }
     }
     applySelectionClasses();
+  }
+
+  function editTextSizeN(sizePts, canvas) {
+    return (sizePts * BASE_SCALE * state.zoom) / Math.max(1, canvas.width);
+  }
+
+  function handleEditPageClick(e, index, wrap, canvas) {
+    if (!isEditTool()) return;
+    if (state.edit.mode !== "add-text") return;
+    if (e.target.closest(".ws-text-item") || e.target.closest(".ws-text-edit")) return;
+    const rect = canvas.getBoundingClientRect();
+    const nx = Math.min(0.98, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const ny = Math.min(0.98, Math.max(0, (e.clientY - rect.top) / rect.height));
+    const entry = state.pages[index];
+    const cfg = state.edit;
+    pushHistory();
+    entry.annotations.push({
+      id: annoSeq++,
+      type: "text",
+      nx,
+      ny,
+      text: "New text",
+      sizeN: editTextSizeN(cfg.size, canvas),
+      color: cfg.color,
+      font: cfg.font,
+      bold: cfg.bold,
+      italic: false,
+    });
+    renderAnnotationLayer(entry, wrap);
+    updateMeta();
+    markSaved();
+    toast("Text added — use Edit text to change it");
+  }
+
+  function bindShapeDrawing(entry, wrap, layer) {
+    layer.addEventListener("pointerdown", (e) => {
+      if (!isEditTool() || !state.edit.shape) return;
+      if (e.button != null && e.button !== 0) return;
+      if (e.target.closest(".ws-anno")) return;
+      e.preventDefault();
+      const rect = layer.getBoundingClientRect();
+      const startX = e.clientX - rect.left;
+      const startY = e.clientY - rect.top;
+      const preview = document.createElement("div");
+      preview.className = "ws-anno ws-anno-shape";
+      preview.style.border = Math.max(1, 0.004 * rect.width) + "px solid " + state.edit.color;
+      preview.style.borderRadius = state.edit.shape === "circle" ? "50%" : "3px";
+      wrap.appendChild(preview);
+      const cur = { x: startX, y: startY, box: null };
+      function apply() {
+        let x = Math.min(startX, cur.x);
+        let y = Math.min(startY, cur.y);
+        let w = Math.abs(cur.x - startX);
+        let h = Math.abs(cur.y - startY);
+        if (state.edit.shape === "square") {
+          const s = Math.max(w, h);
+          if (cur.x < startX) x = startX - s;
+          if (cur.y < startY) y = startY - s;
+          w = s;
+          h = s;
+        }
+        preview.style.left = x + "px";
+        preview.style.top = y + "px";
+        preview.style.width = w + "px";
+        preview.style.height = h + "px";
+        cur.box = { x, y, w, h };
+      }
+      apply();
+      function move(ev) {
+        cur.x = ev.clientX - rect.left;
+        cur.y = ev.clientY - rect.top;
+        apply();
+      }
+      function up() {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        preview.remove();
+        const box = cur.box;
+        if (!box || box.w < 4 || box.h < 4) return;
+        pushHistory();
+        entry.annotations.push({
+          id: annoSeq++,
+          type: "shape",
+          shape: state.edit.shape,
+          nx: box.x / rect.width,
+          ny: box.y / rect.height,
+          wN: box.w / rect.width,
+          hN: box.h / rect.height,
+          color: state.edit.color,
+          strokeWN: 0.004,
+          fill: null,
+        });
+        renderAnnotationLayer(entry, wrap);
+        updateMeta();
+        markSaved();
+        toast("Shape added");
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
   }
 
   function renderEmptyState() {
@@ -1424,6 +1772,14 @@
     );
   }
 
+  function sanitizeWinAnsi(text) {
+    let out = "";
+    for (const ch of String(text)) {
+      out += ch.charCodeAt(0) <= 0xff ? ch : "?";
+    }
+    return out;
+  }
+
   async function buildPdf(indices, progress) {
     const out = await PDFLib.PDFDocument.create();
     const libCache = new Map();
@@ -1460,19 +1816,58 @@
           const pyTop = a.ny * viewport.height;
           const pdfPoint = viewport.convertToPdfPoint(px, pyTop);
 
-          if (a.type === "text") {
-            let font = fontCache.get("helv");
-            if (!font) {
-              font = await out.embedFont(PDFLib.StandardFonts.Helvetica);
-              fontCache.set("helv", font);
-            }
-            copied.drawText(a.text, {
+          if (a.type === "cover") {
+            copied.drawRectangle({
               x: pdfPoint[0],
-              y: pdfPoint[1],
-              size: a.sizeN * viewport.width,
-              font: font,
-              color: colorToRgb(a.color),
+              y: pdfPoint[1] - a.hN * viewport.height,
+              width: a.wN * viewport.width,
+              height: a.hN * viewport.height,
+              color: colorToRgb(a.color || "#ffffff"),
               rotate: PDFLib.degrees(rot),
+            });
+          } else if (a.type === "shape") {
+            const w = a.wN * viewport.width;
+            const h = a.hN * viewport.height;
+            const borderWidth = Math.max(0.5, a.strokeWN * viewport.width);
+            if (a.shape === "circle") {
+              copied.drawEllipse({
+                x: pdfPoint[0] + w / 2,
+                y: pdfPoint[1] - h / 2,
+                xScale: w / 2,
+                yScale: h / 2,
+                borderColor: colorToRgb(a.color),
+                borderWidth: borderWidth,
+                rotate: PDFLib.degrees(rot),
+              });
+            } else {
+              copied.drawRectangle({
+                x: pdfPoint[0],
+                y: pdfPoint[1] - h,
+                width: w,
+                height: h,
+                borderColor: colorToRgb(a.color),
+                borderWidth: borderWidth,
+                rotate: PDFLib.degrees(rot),
+              });
+            }
+          } else if (a.type === "text") {
+            const key = "std:" + standardFontKey(a.font, a.bold, a.italic);
+            let font = fontCache.get(key);
+            if (!font) {
+              font = await out.embedFont(standardFontName(a.font, a.bold, a.italic));
+              fontCache.set(key, font);
+            }
+            const lines = String(a.text).split(/\r?\n/);
+            const lineHeight = a.sizeN * viewport.width * 1.2;
+            lines.forEach((line, li) => {
+              copied.drawText(sanitizeWinAnsi(line), {
+                x: pdfPoint[0],
+                y: pdfPoint[1] - li * lineHeight,
+                size: a.sizeN * viewport.width,
+                font: font,
+                color: colorToRgb(a.color),
+                rotate: PDFLib.degrees(rot),
+              });
             });
           } else {
             let img = imageCache.get(a.dataUrl);
@@ -2027,8 +2422,82 @@
     if (mode === "sign") openSignaturePad();
   }
 
+  /* ================= Edit PDF toolbar ================= */
+
+  const EDIT_MODE_LABELS = {
+    select: "Select",
+    "edit-text": "Edit text",
+    "add-text": "Add text",
+    shape: "Shape",
+  };
+
+  function updateEditToolbar() {
+    const bar = document.getElementById("editToolbar");
+    if (!bar) return;
+    bar.hidden = !isEditTool();
+    if (!isEditTool()) return;
+    const cfg = state.edit;
+    document.querySelectorAll("[data-edit]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.edit === cfg.mode);
+    });
+    document.querySelectorAll("[data-shape]").forEach((btn) => {
+      btn.classList.toggle("is-active", cfg.mode === "shape" && btn.dataset.shape === cfg.shape);
+    });
+    const bold = document.getElementById("editBold");
+    if (bold) bold.classList.toggle("is-active", !!cfg.bold);
+    const font = document.getElementById("editFont");
+    if (font) font.value = cfg.font;
+    const size = document.getElementById("editSize");
+    if (size) size.value = String(cfg.size);
+    const color = document.getElementById("editColor");
+    if (color) color.value = cfg.color;
+  }
+
+  function setEditMode(mode) {
+    state.edit.mode = mode;
+    if (mode !== "shape") state.edit.shape = null;
+    updateEditToolbar();
+    el.statusMode.textContent = (EDIT_MODE_LABELS[mode] || "Select") + " mode";
+    status((EDIT_MODE_LABELS[mode] || "Select") + " mode");
+  }
+
+  function setEditShape(shape) {
+    state.edit.shape = shape;
+    state.edit.mode = "shape";
+    updateEditToolbar();
+    el.statusMode.textContent = "Shape mode";
+    status("Drag on the page to draw a " + shape);
+  }
+
+  function bindEditToolbar() {
+    document.querySelectorAll("[data-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => setEditMode(btn.dataset.edit));
+    });
+    document.querySelectorAll("[data-shape]").forEach((btn) => {
+      btn.addEventListener("click", () => setEditShape(btn.dataset.shape));
+    });
+    const bold = document.getElementById("editBold");
+    if (bold) bold.addEventListener("click", () => {
+      state.edit.bold = !state.edit.bold;
+      updateEditToolbar();
+    });
+    const font = document.getElementById("editFont");
+    if (font) font.addEventListener("change", () => { state.edit.font = font.value; });
+    const size = document.getElementById("editSize");
+    if (size) size.addEventListener("change", () => {
+      const v = parseInt(size.value, 10);
+      state.edit.size = Number.isFinite(v) ? Math.min(96, Math.max(4, v)) : 12;
+      updateEditToolbar();
+    });
+    const color = document.getElementById("editColor");
+    if (color) color.addEventListener("input", () => { state.edit.color = color.value; });
+    const undoBtn = document.getElementById("editUndo");
+    if (undoBtn) undoBtn.addEventListener("click", undo);
+    updateEditToolbar();
+  }
+
   const WORKSPACES = {
-    edit: { title: "Edit PDF", hint: "Add or overlay text on pages.", chips: ["text", "erase"], page: [], file: ["edit", "info", "files"], tab: "file", mode: "text" },
+    edit: { title: "Edit PDF", hint: "Click text on the page to edit it, or add text and shapes.", chips: [], page: [], file: ["edit", "info", "files"], tab: "file", mode: "select" },
     watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
     sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
@@ -2116,6 +2585,7 @@
       }
       if (toolbar) toolbar.classList.remove("is-empty");
       setTool("select", true);
+      updateEditToolbar();
       return;
     }
 
@@ -2142,6 +2612,7 @@
 
     if (workspace.mode) setTool(workspace.mode, !!silent);
     else setTool("select", true);
+    updateEditToolbar();
     updateActionDock();
   }
 
@@ -2234,7 +2705,7 @@
     document.getElementById("convertPdfBtn").addEventListener("click", openImagesToPdf);
 
     const addTextBtn = document.getElementById("addTextBtn");
-    if (addTextBtn) addTextBtn.addEventListener("click", () => setTool("text", true));
+    if (addTextBtn) addTextBtn.addEventListener("click", () => setEditMode("add-text"));
     const placeImageBtn = document.getElementById("placeImageBtn");
     if (placeImageBtn) placeImageBtn.addEventListener("click", () => setTool("image"));
     const placeSignBtn = document.getElementById("placeSignBtn");
@@ -2448,6 +2919,7 @@
   async function boot() {
     bindTopbar();
     bindPanel();
+    bindEditToolbar();
     bindUpload();
     bindSignFloat();
     bindKeyboard();
