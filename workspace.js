@@ -530,35 +530,57 @@
   }
 
   function beginTextEdit(entry, wrap, canvas, span, idx, item) {
-    if (wrap.querySelector(".ws-text-edit")) return;
+    if (wrap.querySelector(".ws-text-edit-box")) return;
+    const box = document.createElement("div");
+    box.className = "ws-text-edit-box";
+    box.style.left = span.style.left;
+    box.style.top = span.style.top;
+    box.style.width = Math.max(70, parseFloat(span.style.width) + 36) + "px";
+    box.style.height = Math.max(20, parseFloat(span.style.fontSize) * 1.5) + "px";
+
     const ta = document.createElement("textarea");
     ta.className = "ws-text-edit";
     ta.value = item.str;
-    ta.style.left = span.style.left;
-    ta.style.top = span.style.top;
     ta.style.fontSize = span.style.fontSize;
     ta.style.fontFamily = span.style.fontFamily;
     ta.style.fontWeight = span.style.fontWeight;
     ta.style.fontStyle = span.style.fontStyle;
-    ta.style.width = Math.max(70, parseFloat(span.style.width) + 36) + "px";
-    ta.style.height = Math.max(20, parseFloat(span.style.fontSize) * 1.5) + "px";
-    wrap.appendChild(ta);
+
+    const cut = document.createElement("button");
+    cut.type = "button";
+    cut.className = "ws-text-cut";
+    cut.title = "Cut this text";
+    cut.setAttribute("aria-label", "Cut text");
+    cut.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+    cut.addEventListener("mousedown", (e) => e.preventDefault());
+    cut.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      ta.value = "";
+      commit();
+    });
+
+    box.append(ta, cut);
+    wrap.appendChild(box);
     span.style.visibility = "hidden";
     ta.focus();
     ta.select();
 
     let settled = false;
+    function cleanup() {
+      box.remove();
+    }
     function cancel() {
       if (settled) return;
       settled = true;
-      ta.remove();
+      cleanup();
       span.style.visibility = "";
     }
     function commit() {
       if (settled) return;
       settled = true;
       const value = ta.value;
-      ta.remove();
+      cleanup();
       if (value === item.str) {
         span.style.visibility = "";
         return;
@@ -591,23 +613,25 @@
       hN: Math.max(item.nh, 0.01) + 0.008,
       color: bg,
     });
-    entry.annotations.push({
-      id: annoSeq++,
-      type: "text",
-      nx: item.nx,
-      ny: item.ny + item.nh,
-      text: value,
-      sizeN: item.fontSizeN,
-      color: item.color,
-      font: item.font,
-      bold: item.bold,
-      italic: item.italic,
-    });
+    if (value.trim() !== "") {
+      entry.annotations.push({
+        id: annoSeq++,
+        type: "text",
+        nx: item.nx,
+        ny: item.ny + item.nh,
+        text: value,
+        sizeN: item.fontSizeN,
+        color: item.color,
+        font: item.font,
+        bold: item.bold,
+        italic: item.italic,
+      });
+    }
     renderAnnotationLayer(entry, wrap);
     renderEditTextLayer(entry, wrap, canvas);
     updateMeta();
     markSaved();
-    toast("Text updated");
+    toast(value.trim() === "" ? "Text removed" : "Text updated");
   }
 
   async function renderPageCanvas(entry, scale) {
@@ -1222,6 +1246,7 @@
       preview.className = "ws-anno ws-anno-shape";
       preview.style.border = Math.max(1, 0.004 * rect.width) + "px solid " + state.edit.color;
       preview.style.borderRadius = state.edit.shape === "circle" ? "50%" : "3px";
+      preview.style.background = state.edit.color;
       wrap.appendChild(preview);
       const cur = { x: startX, y: startY, box: null };
       function apply() {
@@ -1265,7 +1290,7 @@
           hN: box.h / rect.height,
           color: state.edit.color,
           strokeWN: 0.004,
-          fill: null,
+          fill: state.edit.color,
         });
         renderAnnotationLayer(entry, wrap);
         updateMeta();
@@ -1830,7 +1855,7 @@
             const h = a.hN * viewport.height;
             const borderWidth = Math.max(0.5, a.strokeWN * viewport.width);
             if (a.shape === "circle") {
-              copied.drawEllipse({
+              const opts = {
                 x: pdfPoint[0] + w / 2,
                 y: pdfPoint[1] - h / 2,
                 xScale: w / 2,
@@ -1838,9 +1863,11 @@
                 borderColor: colorToRgb(a.color),
                 borderWidth: borderWidth,
                 rotate: PDFLib.degrees(rot),
-              });
+              };
+              if (a.fill) opts.color = colorToRgb(a.fill);
+              copied.drawEllipse(opts);
             } else {
-              copied.drawRectangle({
+              const opts = {
                 x: pdfPoint[0],
                 y: pdfPoint[1] - h,
                 width: w,
@@ -1848,7 +1875,9 @@
                 borderColor: colorToRgb(a.color),
                 borderWidth: borderWidth,
                 rotate: PDFLib.degrees(rot),
-              });
+              };
+              if (a.fill) opts.color = colorToRgb(a.fill);
+              copied.drawRectangle(opts);
             }
           } else if (a.type === "text") {
             const key = "std:" + standardFontKey(a.font, a.bold, a.italic);
@@ -2470,6 +2499,11 @@
   }
 
   function bindEditToolbar() {
+    const back = document.getElementById("editBack");
+    if (back) back.addEventListener("click", () => {
+      const key = state.selectedTool || "edit";
+      window.location.href = "tool.html?id=" + encodeURIComponent(key);
+    });
     document.querySelectorAll("[data-edit]").forEach((btn) => {
       btn.addEventListener("click", () => setEditMode(btn.dataset.edit));
     });
