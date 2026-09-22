@@ -803,6 +803,31 @@ html[data-layout="cards"] .ws-page {
   border-color: var(--ws-teal);
 }
 .ws-thumb-card.is-selected .ws-card-check svg { opacity: 1; }
+
+/* Remove-pages tool: centered cross on cards marked for deletion */
+.ws-card-cross {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  pointer-events: none;
+  background: rgba(229, 50, 45, .14);
+  transition: opacity .12s ease;
+}
+.ws-card-cross svg {
+  width: 48px;
+  height: 48px;
+  padding: 10px;
+  color: #fff;
+  background: rgba(219, 50, 50, .94);
+  border-radius: 50%;
+  box-shadow: 0 8px 20px rgba(150, 20, 30, .38);
+}
+.ws-thumb-card.is-remove-tool.is-selected .ws-card-cross { opacity: 1; }
+.ws-thumb-card.is-remove-tool.is-selected .ws-card-cover { filter: grayscale(.3) brightness(.97); }
+
 .ws-lightbox {
   position: fixed;
   inset: 0;
