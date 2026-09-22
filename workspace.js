@@ -20,6 +20,7 @@
     pendingImage: null,
     pendingSignature: null,
     edit: { mode: "select", shape: null, bold: false, font: "Helvetica", size: 12, color: "#16323f" },
+    selAnno: null,
     history: [],
     future: [],
   };
@@ -194,6 +195,7 @@
     const data = JSON.parse(snap);
     state.pages = data;
     state.selected.clear();
+    state.selAnno = null;
     rerender("all");
   }
 
@@ -311,7 +313,7 @@
 
   /* ================= rendering ================= */
 
-  function annotationElement(a, viewport, scale) {
+  function annotationElement(a, entry, viewport, pageNode) {
     const node = document.createElement("div");
     node.className = "ws-anno ws-anno-" + a.type;
     node.dataset.annoId = a.id;
@@ -363,19 +365,32 @@
       node.style.top = py + "px";
       node.appendChild(img);
     }
-    if (a.type === "sign" || a.type === "image") enableAnnoDrag(node, a);
+    if (a.type === "sign" || a.type === "image") enableAnnoControls(node, a, entry, pageNode);
     return node;
   }
 
-  function enableAnnoDrag(node, anno) {
+  function removeAnnotation(entry, anno, pageNode) {
+    pushHistory();
+    entry.annotations = entry.annotations.filter((x) => x !== anno);
+    if (state.selAnno && state.selAnno.anno === anno) state.selAnno = null;
+    renderAnnotationLayer(entry, pageNode);
+    updateMeta();
+    markSaved();
+    toast("Removed");
+  }
+
+  function enableAnnoControls(node, anno, entry, pageNode) {
     node.style.cursor = "grab";
+
     node.addEventListener("pointerdown", (e) => {
       if (state.tool === "erase") return;
+      if (e.target.closest(".ws-anno-resize") || e.target.closest(".ws-anno-remove")) return;
       e.preventDefault();
       e.stopPropagation();
       const layer = node.parentElement;
       if (!layer) return;
       pushHistory();
+      selectAnno(node, anno, entry, pageNode);
       node.style.cursor = "grabbing";
       const startX = e.clientX;
       const startY = e.clientY;
@@ -397,6 +412,67 @@
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     });
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "ws-anno-remove";
+    remove.title = "Remove";
+    remove.setAttribute("aria-label", "Remove");
+    remove.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>';
+    remove.addEventListener("pointerdown", (e) => e.stopPropagation());
+    remove.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      removeAnnotation(entry, anno, pageNode);
+    });
+    node.appendChild(remove);
+
+    const resize = document.createElement("div");
+    resize.className = "ws-anno-resize";
+    resize.title = "Resize";
+    resize.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const layer = node.parentElement;
+      if (!layer) return;
+      const img = node.querySelector("img");
+      if (!img) return;
+      pushHistory();
+      selectAnno(node, anno, entry, pageNode);
+      const rect = layer.getBoundingClientRect();
+      const startX = e.clientX;
+      const startW = anno.wN;
+      const startH = anno.hN;
+      const aspect = (startH * rect.height) / Math.max(1, startW * rect.width);
+      function move(ev) {
+        const widthPx = Math.max(24, startW * rect.width + (ev.clientX - startX));
+        let wN = widthPx / rect.width;
+        wN = Math.min(1 - anno.nx, wN);
+        let hN = (aspect * widthPx) / rect.height;
+        if (hN > 1 - anno.ny) {
+          hN = 1 - anno.ny;
+          wN = (hN * rect.height) / aspect / rect.width;
+        }
+        anno.wN = wN;
+        anno.hN = hN;
+        img.style.width = wN * rect.width + "px";
+        img.style.height = hN * rect.height + "px";
+      }
+      function up() {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        markSaved();
+      }
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    });
+    node.appendChild(resize);
+  }
+
+  function selectAnno(node, anno, entry, pageNode) {
+    if (state.selAnno && state.selAnno.node) state.selAnno.node.classList.remove("is-anno-selected");
+    state.selAnno = { anno, entry, pageNode, node };
+    node.classList.add("is-anno-selected");
   }
 
   async function renderAnnotationLayer(entry, pageNode) {
@@ -406,7 +482,7 @@
     if (!entry.annotations.length) return;
     const viewport = await pageViewport(entry, BASE_SCALE * state.zoom);
     entry.annotations.forEach((a) => {
-      layer.appendChild(annotationElement(a, viewport, BASE_SCALE * state.zoom));
+      layer.appendChild(annotationElement(a, entry, viewport, pageNode));
     });
   }
 
@@ -2534,7 +2610,7 @@
     edit: { title: "Edit PDF", hint: "Click text on the page to edit it, or add text and shapes.", chips: [], page: [], file: ["edit", "info", "files"], tab: "file", mode: "select", action: "Download PDF" },
     watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
-    sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign" },
+    sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign", action: "Download PDF" },
     rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: [], tab: "page", action: "Rotate PDF" },
     split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: [], tab: "page", action: "Split PDF" },
     merge: { title: "Merge PDF", hint: "To change the order of your PDFs, drag and drop the files as you want.", chips: [], page: [], file: [], tab: "file", action: "Merge PDF" },
@@ -2894,7 +2970,12 @@
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        deleteSelection();
+        const sel = state.selAnno;
+        if (sel && sel.entry && state.pages.indexOf(sel.entry) !== -1) {
+          removeAnnotation(sel.entry, sel.anno, sel.pageNode);
+        } else {
+          deleteSelection();
+        }
       } else if (e.key === "ArrowRight") {
         const i = Math.min(state.pages.length - 1, state.current + 1);
         selectPage(i, false);
