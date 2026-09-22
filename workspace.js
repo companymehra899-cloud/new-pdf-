@@ -2523,7 +2523,7 @@
   }
 
   function setZoom(value) {
-    state.zoom = Math.min(1, Math.max(0.4, +Number(value).toFixed(2)));
+    state.zoom = Math.min(1, Math.max(0, +Number(value).toFixed(2)));
     updateZoomUI();
     renderStack();
   }
