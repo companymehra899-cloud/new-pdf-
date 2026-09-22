@@ -531,7 +531,7 @@
     if (!layer) return;
     layer.innerHTML = "";
     if (!entry.annotations.length) return;
-    const viewport = await pageViewport(entry, BASE_SCALE * state.zoom);
+    const viewport = await pageViewport(entry, pageScale());
     entry.annotations.forEach((a) => {
       layer.appendChild(annotationElement(a, entry, viewport, pageNode));
     });
@@ -762,6 +762,7 @@
   }
 
   async function renderPageCanvas(entry, scale) {
+    scale = Math.max(0.05, scale);
     const src = state.sources[entry.fileId];
     const pj = await src.pdf.getPage(entry.sourceIndex + 1);
     const viewport = pj.getViewport({ scale: scale, rotation: totalRotation(entry) });
@@ -1251,7 +1252,7 @@
       applyCardZoom();
       return;
     }
-    const scale = BASE_SCALE * state.zoom;
+    const scale = pageScale();
     for (let i = 0; i < state.pages.length; i++) {
       const entry = state.pages[i];
       const wrap = document.createElement("div");
@@ -1305,7 +1306,7 @@
   }
 
   function editTextSizeN(sizePts, canvas) {
-    return (sizePts * BASE_SCALE * state.zoom) / Math.max(1, canvas.width);
+    return (sizePts * pageScale()) / Math.max(1, canvas.width);
   }
 
   function handleEditPageClick(e, index, wrap, canvas) {
@@ -2616,6 +2617,10 @@
     const factor = state.zoom / 0.4;
     stack.style.setProperty("--card-w", Math.round(168 * factor) + "px");
     stack.style.setProperty("--card-h", Math.round(214 * factor) + "px");
+  }
+
+  function pageScale() {
+    return Math.max(0.05, BASE_SCALE * state.zoom);
   }
 
   function updateZoomUI() {
