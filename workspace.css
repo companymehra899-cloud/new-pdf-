@@ -356,6 +356,47 @@ html[data-tool="crop"] .ws-canvas-toolbar {
   cursor: pointer;
 }
 
+/* ====== ZOOM CONTROL ====== */
+.ws-zoom-float {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, .96);
+  border: 1px solid var(--ws-line);
+  border-radius: 999px;
+  box-shadow: 0 8px 20px rgba(31, 41, 51, .12);
+}
+.ws-zoom-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f4f6f8;
+  border: 1px solid #e2e8ee;
+  color: #3c5766;
+}
+.ws-zoom-btn svg { width: 16px; height: 16px; }
+.ws-zoom-btn:hover { border-color: #f3b6b3; color: var(--ws-teal-dark); }
+.ws-zoom-range { width: 110px; accent-color: var(--ws-teal); }
+.ws-zoom-pct {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #3c5766;
+  min-width: 38px;
+  text-align: center;
+}
+html[data-tool="edit"] .ws-zoom-float { top: 74px; }
+@media (max-width: 720px) {
+  .ws-zoom-range { width: 70px; }
+}
+
 .ws-canvas {
   flex: 1;
   overflow: auto;

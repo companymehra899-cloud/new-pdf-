@@ -13,7 +13,7 @@
     sources: [],
     pages: [],
     selected: new Set(),
-    zoom: 1,
+    zoom: 0.6,
     current: 0,
     tool: "select",
     selectedTool: "",
@@ -1011,7 +1011,7 @@
       const cover = document.createElement("div");
       cover.className = "ws-card-cover";
       if (firstPage) {
-        const canvas = await renderPageCanvas(firstPage, 0.42 * state.zoom);
+        const canvas = await renderPageCanvas(firstPage, 0.42);
         canvas.style.width = "100%";
         canvas.style.height = "auto";
         cover.appendChild(canvas);
@@ -1083,7 +1083,7 @@
 
   async function renderPageCards() {
     el.pageStack.classList.add("is-cards");
-    const scale = 0.38 * Math.max(0.7, state.zoom);
+    const scale = 0.38;
     for (let i = 0; i < state.pages.length; i++) {
       const entry = state.pages[i];
       const wrap = document.createElement("div");
@@ -1212,6 +1212,8 @@
   async function renderStack() {
     el.pageStack.innerHTML = "";
     el.pageStack.classList.remove("is-cards");
+    const zoomFloat = document.getElementById("zoomFloat");
+    if (zoomFloat) zoomFloat.hidden = isFileCardTool() || isPageCardTool();
     if (!state.pages.length) {
       renderEmptyState();
       return;
@@ -1509,6 +1511,8 @@
     if (state.tool === "select") return;
     e.stopPropagation();
 
+    if (state.tool !== "erase" && e.target.closest(".ws-anno")) return;
+
     if (state.tool === "erase") {
       const target = e.target.closest(".ws-anno");
       if (!target) return;
@@ -1599,7 +1603,9 @@
     await renderThumb(index, el.thumbs.querySelectorAll(".ws-thumb")[index]);
     updateMeta();
     markSaved();
-    toast("Signature placed — drag it to move");
+    state.pendingSignature = null;
+    setTool("select");
+    toast("Signature placed — drag it to move or resize");
     status("Signature placed on page " + (index + 1));
   }
 
@@ -1640,6 +1646,9 @@
       const rect = floatEl.getBoundingClientRect();
       const offsetX = e.clientX - rect.left;
       const offsetY = e.clientY - rect.top;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      let moved = false;
       floatEl.classList.add("is-dragging");
       floatEl.style.right = "auto";
       floatEl.style.bottom = "auto";
@@ -1647,6 +1656,7 @@
       floatEl.style.top = rect.top + "px";
 
       function move(ev) {
+        if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > 6) moved = true;
         floatEl.style.left = ev.clientX - offsetX + "px";
         floatEl.style.top = ev.clientY - offsetY + "px";
       }
@@ -1659,7 +1669,7 @@
         const under = document.elementFromPoint(ev.clientX, ev.clientY);
         floatEl.style.visibility = "";
         const wrap = under && under.closest(".ws-page");
-        if (wrap && wrap.dataset.index != null) {
+        if (moved && wrap && wrap.dataset.index != null) {
           const index = parseInt(wrap.dataset.index, 10);
           placeSignatureOnPage(index, wrap, ev.clientX, ev.clientY);
         }
@@ -2495,11 +2505,20 @@
     markSaved();
   }
 
-  function setZoom(value) {
-    state.zoom = Math.min(1.6, Math.max(0.4, +Number(value).toFixed(2)));
-    el.zoomLabel.textContent = Math.round(state.zoom * 100) + "%";
+  function updateZoomUI() {
+    const pct = Math.round(state.zoom * 100) + "%";
+    el.zoomLabel.textContent = pct;
     const slider = document.getElementById("zoomSlider");
     if (slider) slider.value = String(Math.round(state.zoom * 100));
+    const range = document.getElementById("zoomRange");
+    if (range) range.value = String(Math.round(state.zoom * 100));
+    const p = document.getElementById("zoomPct");
+    if (p) p.textContent = pct;
+  }
+
+  function setZoom(value) {
+    state.zoom = Math.min(1, Math.max(0.4, +Number(value).toFixed(2)));
+    updateZoomUI();
     renderStack();
   }
 
@@ -2796,6 +2815,7 @@
     const panelAction = document.getElementById("panelActionBtn");
     if (panelAction) panelAction.addEventListener("click", () => runPrimaryAction());
     el.fileName.addEventListener("input", markSaved);
+    updateZoomUI();
   }
 
   function bindPanel() {
@@ -2884,6 +2904,15 @@
     if (zoomSlider) {
       zoomSlider.addEventListener("input", () => setZoom(parseInt(zoomSlider.value, 10) / 100));
     }
+
+    const zoomRange = document.getElementById("zoomRange");
+    if (zoomRange) {
+      zoomRange.addEventListener("input", () => setZoom(parseInt(zoomRange.value, 10) / 100));
+    }
+    const zoomInBtn = document.getElementById("zoomInBtn");
+    if (zoomInBtn) zoomInBtn.addEventListener("click", () => zoomBy(0.1));
+    const zoomOutBtn = document.getElementById("zoomOutBtn");
+    if (zoomOutBtn) zoomOutBtn.addEventListener("click", () => zoomBy(-0.1));
 
     const lightboxClose = document.getElementById("lightboxClose");
     if (lightboxClose) lightboxClose.addEventListener("click", closeLightbox);
