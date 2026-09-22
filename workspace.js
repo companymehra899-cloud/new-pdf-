@@ -1445,6 +1445,7 @@
   }
 
   function selectPage(index, additive) {
+    if (state.selectedTool === "remove") additive = true;
     if (!additive) state.selected.clear();
     if (state.selected.has(index)) {
       if (additive) state.selected.delete(index);
