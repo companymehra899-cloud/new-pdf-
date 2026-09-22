@@ -2825,6 +2825,7 @@
     download(new Blob([bytes], { type: "application/pdf" }), name);
     status("Exported " + name);
     toast("Downloaded " + name);
+    setTimeout(() => window.location.reload(), 400);
   }
 
   /* ================= bindings ================= */
