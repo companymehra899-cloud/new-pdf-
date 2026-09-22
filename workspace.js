@@ -133,6 +133,10 @@
     return /^image\/(png|jpeg|jpg)$/i.test(file.type) || /\.(png|jpe?g)$/i.test(file.name);
   }
 
+  function isHtmlFile(file) {
+    return /text\/(html|plain)/i.test(file.type) || /\.(html?|txt)$/i.test(file.name);
+  }
+
   /* ================= modal ================= */
 
   function openModal(title, buildBody, buildFoot) {
@@ -247,6 +251,49 @@
     return await doc.save();
   }
 
+  async function htmlToPdfBytes(file) {
+    const raw = await file.text();
+    const text = raw.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim() || "Empty document";
+    const doc = await PDFLib.PDFDocument.create();
+    const font = await doc.embedFont(PDFLib.StandardFonts.Helvetica);
+    const pageWidth = 595.28;
+    const pageHeight = 841.89;
+    const margin = 48;
+    const fontSize = 11;
+    const lineHeight = 14;
+    const maxWidth = pageWidth - margin * 2;
+    const words = text.split(" ");
+    const lines = [];
+    let current = "";
+    for (const word of words) {
+      const trial = current ? current + " " + word : word;
+      if (font.widthOfTextAtSize(trial, fontSize) > maxWidth) {
+        if (current) lines.push(current);
+        current = word;
+      } else {
+        current = trial;
+      }
+    }
+    if (current) lines.push(current);
+    let page = doc.addPage([pageWidth, pageHeight]);
+    let y = pageHeight - margin;
+    for (const line of lines) {
+      if (y < margin) {
+        page = doc.addPage([pageWidth, pageHeight]);
+        y = pageHeight - margin;
+      }
+      page.drawText(sanitizeWinAnsi(line).slice(0, 180), {
+        x: margin,
+        y: y,
+        size: fontSize,
+        font: font,
+        color: PDFLib.rgb(0.12, 0.12, 0.12),
+      });
+      y -= lineHeight;
+    }
+    return await doc.save();
+  }
+
   async function loadSource(file) {
     let bytes;
     let name = file.name;
@@ -256,6 +303,10 @@
       bytes = new Uint8Array(await file.arrayBuffer());
     } else if (isImageFile(file)) {
       const pdfBytes = await imageToPdfBytes(file);
+      bytes = pdfBytes;
+      size = pdfBytes.length;
+    } else if (isHtmlFile(file)) {
+      const pdfBytes = await htmlToPdfBytes(file);
       bytes = pdfBytes;
       size = pdfBytes.length;
     } else {
@@ -285,7 +336,7 @@
 
   async function addFiles(fileList) {
     const files = Array.from(fileList);
-    const usable = files.filter((f) => isPdfFile(f) || isImageFile(f));
+    const usable = files.filter((f) => isPdfFile(f) || isImageFile(f) || isHtmlFile(f));
     if (!usable.length) {
       toast("Only PDF or image files are supported", true);
       return 0;
@@ -1065,22 +1116,6 @@
     updateAddFab();
   }
 
-  function hoverAction(label, svg, onClick) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "ws-hover-btn";
-    btn.title = label;
-    btn.setAttribute("aria-label", label);
-    btn.innerHTML = svg;
-    btn.addEventListener("click", (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      onClick();
-    });
-    btn.addEventListener("mousedown", (e) => e.stopPropagation());
-    return btn;
-  }
-
   async function renderPageCards() {
     el.pageStack.classList.add("is-cards");
     const scale = 0.38;
@@ -1158,24 +1193,6 @@
     if (state.current >= state.pages.length) state.current = Math.max(0, state.pages.length - 1);
     rerender("all");
     toast("Page removed");
-    markSaved();
-  }
-
-  function duplicatePage(index) {
-    const entry = state.pages[index];
-    if (!entry) return;
-    pushHistory();
-    const copy = {
-      fileId: entry.fileId,
-      sourceIndex: entry.sourceIndex,
-      srcRotation: entry.srcRotation,
-      rotation: entry.rotation,
-      annotations: JSON.parse(JSON.stringify(entry.annotations || [])),
-    };
-    state.pages.splice(index + 1, 0, copy);
-    state.selected = new Set([index + 1]);
-    rerender("all");
-    toast("Page duplicated");
     markSaved();
   }
 
@@ -2099,6 +2116,7 @@
     );
     toast("Extracted " + indices.length + " page(s)");
     status("Extracted " + indices.length + " page(s)");
+    return true;
   }
 
   async function splitAfterSelection() {
@@ -2879,6 +2897,16 @@
     else if (tool === "split") done = await splitAfterSelection();
     else if (tool === "rotate") done = await exportPdf({ suffix: "-rotated" });
     else if (tool === "remove") done = await exportWithoutMarkedPages();
+    else if (tool === "extract") done = await extractSelection();
+    else if (tool === "crop") {
+      const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
+      if (targets.length) {
+        targets.forEach((i) => {
+          if (!state.pages[i].cropN) state.pages[i].cropN = 0.06;
+        });
+      }
+      done = await exportPdf({ suffix: "-cropped" });
+    }
     else done = await exportPdf();
     if (done) setTimeout(() => window.location.reload(), 400);
   }
@@ -2978,8 +3006,6 @@
     if (placeWatermarkBtn) placeWatermarkBtn.addEventListener("click", () => setTool("text", true));
     const pdfWordBtn = document.getElementById("pdfWordBtn");
     if (pdfWordBtn) pdfWordBtn.addEventListener("click", exportPdfAsText);
-    const wordPdfBtn = document.getElementById("wordPdfBtn");
-    if (wordPdfBtn) wordPdfBtn.addEventListener("click", () => exportPdf({ suffix: "" }));
     const htmlPdfBtn = document.getElementById("htmlPdfBtn");
     if (htmlPdfBtn) htmlPdfBtn.addEventListener("click", () => exportPdf({ suffix: "" }));
     const unlockBtn = document.getElementById("unlockBtn");

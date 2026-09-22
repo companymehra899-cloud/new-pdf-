@@ -333,11 +333,9 @@ img, svg { display: block; max-width: 100%; }
 .footer-nav { display: flex; gap: 22px; }
 .footer-nav a:hover { color: #fff; }
 .footer-copy { margin: 0; font-size: 13px; color: #999; }
-.footer-left { display: flex; align-items: center; gap: 16px; }
 
 .tool-page { background: #f5f5f5; flex: 1; }
 .tool-page .hero { background: transparent; padding: 0; }
-.mascot, .sparkle, .floating-docs, .bg-decor { display: none; }
 
 @media (max-width: 1100px) {
   .tools-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -496,7 +496,6 @@ html[data-layout="cards"] .ws-page {
   border-color: transparent;
   box-shadow: none;
 }
-.ws-file-card .ws-card-order,
 .ws-file-card .ws-page-badge {
   display: none;
 }
@@ -605,22 +604,6 @@ html[data-layout="cards"] .ws-page {
   max-height: 100%;
   object-fit: contain;
 }
-.ws-card-order {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 3;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: #16323f;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
-}
 .ws-file-card .ws-card-meta {
   padding: 10px 4px 0;
   background: transparent;
@@ -635,24 +618,6 @@ html[data-layout="cards"] .ws-page {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ws-card-size {
-  display: none;
-}
-.ws-card-actions {
-  display: flex;
-  gap: 6px;
-  padding: 0 10px 10px;
-}
-.ws-card-act {
-  flex: 1;
-  height: 28px;
-  border-radius: 8px;
-  background: #eaf6fd;
-  color: #1786c4;
-  font-size: 12px;
-  font-weight: 800;
-}
-.ws-card-act:hover { background: #d7eefb; }
 .ws-add-card,
 .ws-add-card span,
 .ws-add-card b,
@@ -741,7 +706,6 @@ html[data-layout="cards"] .ws-page {
   box-shadow: 0 1px 6px rgba(0,0,0,.08);
 }
 .ws-thumb-card .ws-page-num,
-.ws-thumb-card .ws-card-check,
 .ws-thumb-card .ws-thumb-rot {
   display: none;
 }
@@ -785,27 +749,6 @@ html[data-layout="cards"] .ws-page {
   display: grid;
   place-items: center;
 }
-.ws-card-check {
-  position: absolute;
-  top: 8px;
-  left: 8px;
-  z-index: 4;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #c9dbe6;
-  background: #fff;
-  color: #fff;
-  display: grid;
-  place-items: center;
-}
-.ws-card-check svg { width: 12px; height: 12px; opacity: 0; }
-.ws-thumb-card.is-selected .ws-card-check {
-  background: var(--ws-teal);
-  border-color: var(--ws-teal);
-}
-.ws-thumb-card.is-selected .ws-card-check svg { opacity: 1; }
-
 /* Remove-pages tool: centered cross on cards marked for deletion */
 .ws-card-cross {
   position: absolute;
