@@ -2980,7 +2980,9 @@
       cell.classList.toggle("is-active", cell.dataset.pos === cfg.pos);
     });
     document.querySelectorAll("#wmOrient [data-orient]").forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.orient === (cfg.orient || "horizontal"));
+      const on = btn.getAttribute("data-orient") === (cfg.orient || "horizontal");
+      btn.classList.toggle("is-active", on);
+      btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
   }
 
@@ -3012,12 +3014,16 @@
         syncWatermarkPanel();
       });
     });
-    document.querySelectorAll("#wmOrient [data-orient]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state.watermark.orient = btn.dataset.orient;
+    const orientWrap = document.getElementById("wmOrient");
+    if (orientWrap) {
+      orientWrap.addEventListener("click", (e) => {
+        const btn = e.target.closest("[data-orient]");
+        if (!btn) return;
+        e.preventDefault();
+        state.watermark.orient = btn.getAttribute("data-orient") || "horizontal";
         syncWatermarkPanel();
       });
-    });
+    }
     const pick = document.getElementById("wmPickImage");
     if (pick) pick.addEventListener("click", () => el.imageInput.click());
     syncWatermarkPanel();
