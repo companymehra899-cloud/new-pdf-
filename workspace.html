@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=37" />
+<link rel="stylesheet" href="workspace.css?v=39" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -315,12 +315,54 @@
         </button>
       </div>
       <div class="ws-panel-block" data-scope="watermark">
-        <h4>Watermark</h4>
-        <p class="ws-note">Add a text or image watermark by placing it on the page.</p>
-        <button type="button" class="ws-list-btn" id="placeWatermarkBtn">
-          <svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
-          Add watermark text
-        </button>
+        <div class="wm-kind">
+          <button type="button" class="wm-kind-btn is-active" id="wmKindText" data-wm-kind="text">
+            <span class="wm-kind-icon">A</span>
+            Place text
+          </button>
+          <button type="button" class="wm-kind-btn" id="wmKindImage" data-wm-kind="image">
+            <span class="wm-kind-icon wm-kind-pic">
+              <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="8.5" cy="10" r="1.4" fill="currentColor"/><path d="M4 16l5-5 4 4 3-3 5 4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+            </span>
+            Place image
+          </button>
+        </div>
+        <div id="wmTextFields">
+          <label class="wm-label">Text:</label>
+          <input class="ws-input" id="wmText" type="text" value="Docu-Magic" />
+          <label class="wm-label">Text format:</label>
+          <div class="wm-format">
+            <select class="ws-input wm-font" id="wmFont">
+              <option value="Helvetica">Arial</option>
+              <option value="Times">Times</option>
+              <option value="Courier">Courier</option>
+            </select>
+            <button type="button" class="wm-fmt" id="wmBold" title="Bold"><b>B</b></button>
+            <button type="button" class="wm-fmt" id="wmItalic" title="Italic"><i>I</i></button>
+            <button type="button" class="wm-fmt" id="wmUnderline" title="Underline"><u>U</u></button>
+            <input type="color" class="wm-color" id="wmColor" value="#e5322d" title="Colour" />
+          </div>
+        </div>
+        <div id="wmImageFields" hidden>
+          <label class="wm-label">Image:</label>
+          <button type="button" class="ws-list-btn" id="wmPickImage">Choose image</button>
+          <span class="wm-file" id="wmImageName">No image selected</span>
+        </div>
+        <label class="wm-label">Position:</label>
+        <div class="wm-pos-row">
+          <div class="wm-grid" id="wmGrid">
+            <button type="button" class="wm-cell is-active" data-pos="tl"></button>
+            <button type="button" class="wm-cell" data-pos="tc"></button>
+            <button type="button" class="wm-cell" data-pos="tr"></button>
+            <button type="button" class="wm-cell" data-pos="ml"></button>
+            <button type="button" class="wm-cell" data-pos="mc"></button>
+            <button type="button" class="wm-cell" data-pos="mr"></button>
+            <button type="button" class="wm-cell" data-pos="bl"></button>
+            <button type="button" class="wm-cell" data-pos="bc"></button>
+            <button type="button" class="wm-cell" data-pos="br"></button>
+          </div>
+          <label class="wm-check"><input type="checkbox" id="wmMosaic" /> Mosaic</label>
+        </div>
       </div>
       <div class="ws-panel-block" data-scope="merge">
         <h4>Merge PDFs</h4>
@@ -484,6 +526,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=38"></script>
+<script src="workspace.js?v=39"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@
     pendingImage: null,
     pendingSignature: null,
     edit: { mode: "select", shape: null, bold: false, font: "Helvetica", size: 12, color: "#16323f" },
+    watermark: { kind: "text", text: "Docu-Magic", font: "Helvetica", bold: true, italic: false, underline: false, color: "#e5322d", pos: "tl", mosaic: false, image: null },
     selAnno: null,
     history: [],
     future: [],
@@ -1769,6 +1770,17 @@
     const dataUrl = await readAsDataURL(file);
     const img = new Image();
     img.onload = () => {
+      if (state.selectedTool === "watermark") {
+        state.watermark.image = {
+          dataUrl,
+          wN: 0.22,
+          hN: 0.22 * (img.height / Math.max(1, img.width)),
+        };
+        const nameEl = document.getElementById("wmImageName");
+        if (nameEl) nameEl.textContent = file.name;
+        toast("Image ready. Click Add watermark");
+        return;
+      }
       state.pendingImage = {
         dataUrl,
         wN: 0.32,
@@ -2749,7 +2761,7 @@
 
   const WORKSPACES = {
     edit: { title: "Edit PDF", hint: "Click text on the page to edit it, or add text and shapes.", chips: [], page: [], file: ["edit", "info", "files"], tab: "file", mode: "select", action: "Download PDF" },
-    watermark: { title: "Watermark PDF", hint: "Stamp text or an image on the page.", chips: ["text", "image", "erase"], page: [], file: ["watermark", "info", "files"], tab: "file", mode: "text", action: "Download PDF" },
+    watermark: { title: "Watermark options", hint: "Choose text or image, then add it to every page.", chips: [], page: [], file: ["watermark"], tab: "file", action: "Add watermark" },
     image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
     sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign", action: "Download PDF" },
     rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: [], tab: "page", action: "Rotate PDF" },
@@ -2901,6 +2913,7 @@
     else if (tool === "compress") done = await compressAndDownload();
     else if (tool === "split") done = await splitAfterSelection();
     else if (tool === "rotate") done = await exportPdf({ suffix: "-rotated" });
+    else if (tool === "watermark") done = await applyWatermarkAndExport();
     else if (tool === "remove") done = await exportWithoutMarkedPages();
     else if (tool === "extract") done = await extractSelection();
     else if (tool === "crop") {
@@ -2914,6 +2927,141 @@
     }
     else done = await exportPdf();
     if (done) setTimeout(() => window.location.reload(), 400);
+  }
+
+  function watermarkPositions() {
+    const cfg = state.watermark;
+    const map = {
+      tl: [0.08, 0.06], tc: [0.42, 0.06], tr: [0.72, 0.06],
+      ml: [0.08, 0.46], mc: [0.38, 0.46], mr: [0.72, 0.46],
+      bl: [0.08, 0.88], bc: [0.42, 0.88], br: [0.72, 0.88],
+    };
+    if (cfg.mosaic) {
+      const spots = [];
+      for (let y = 0; y < 3; y++) {
+        for (let x = 0; x < 3; x++) spots.push([0.08 + x * 0.32, 0.08 + y * 0.4]);
+      }
+      return spots;
+    }
+    return [map[cfg.pos] || map.tl];
+  }
+
+  function readWatermarkForm() {
+    const textEl = document.getElementById("wmText");
+    const fontEl = document.getElementById("wmFont");
+    const colorEl = document.getElementById("wmColor");
+    const mosaicEl = document.getElementById("wmMosaic");
+    if (textEl) state.watermark.text = textEl.value;
+    if (fontEl) state.watermark.font = fontEl.value;
+    if (colorEl) state.watermark.color = colorEl.value;
+    if (mosaicEl) state.watermark.mosaic = mosaicEl.checked;
+  }
+
+  function syncWatermarkPanel() {
+    const cfg = state.watermark;
+    document.querySelectorAll("[data-wm-kind]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.wmKind === cfg.kind);
+    });
+    const textFields = document.getElementById("wmTextFields");
+    const imageFields = document.getElementById("wmImageFields");
+    if (textFields) textFields.hidden = cfg.kind !== "text";
+    if (imageFields) imageFields.hidden = cfg.kind !== "image";
+    const bold = document.getElementById("wmBold");
+    const italic = document.getElementById("wmItalic");
+    const underline = document.getElementById("wmUnderline");
+    if (bold) bold.classList.toggle("is-active", !!cfg.bold);
+    if (italic) italic.classList.toggle("is-active", !!cfg.italic);
+    if (underline) underline.classList.toggle("is-active", !!cfg.underline);
+    document.querySelectorAll("#wmGrid [data-pos]").forEach((cell) => {
+      cell.classList.toggle("is-active", cell.dataset.pos === cfg.pos);
+    });
+  }
+
+  function bindWatermarkPanel() {
+    document.querySelectorAll("[data-wm-kind]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.watermark.kind = btn.dataset.wmKind;
+        syncWatermarkPanel();
+      });
+    });
+    const bold = document.getElementById("wmBold");
+    if (bold) bold.addEventListener("click", () => {
+      state.watermark.bold = !state.watermark.bold;
+      syncWatermarkPanel();
+    });
+    const italic = document.getElementById("wmItalic");
+    if (italic) italic.addEventListener("click", () => {
+      state.watermark.italic = !state.watermark.italic;
+      syncWatermarkPanel();
+    });
+    const underline = document.getElementById("wmUnderline");
+    if (underline) underline.addEventListener("click", () => {
+      state.watermark.underline = !state.watermark.underline;
+      syncWatermarkPanel();
+    });
+    document.querySelectorAll("#wmGrid [data-pos]").forEach((cell) => {
+      cell.addEventListener("click", () => {
+        state.watermark.pos = cell.dataset.pos;
+        syncWatermarkPanel();
+      });
+    });
+    const pick = document.getElementById("wmPickImage");
+    if (pick) pick.addEventListener("click", () => el.imageInput.click());
+    syncWatermarkPanel();
+  }
+
+  async function applyWatermarkAndExport() {
+    if (!state.pages.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    readWatermarkForm();
+    const cfg = state.watermark;
+    if (cfg.kind === "text" && !String(cfg.text || "").trim()) {
+      toast("Enter watermark text", true);
+      return;
+    }
+    if (cfg.kind === "image" && !cfg.image) {
+      toast("Choose a watermark image first", true);
+      return;
+    }
+    pushHistory();
+    const spots = watermarkPositions();
+    state.pages.forEach((page) => {
+      page.annotations = (page.annotations || []).filter((a) => !a.watermark);
+      spots.forEach(([nx, ny]) => {
+        if (cfg.kind === "image") {
+          page.annotations.push({
+            id: annoSeq++,
+            type: "image",
+            watermark: true,
+            nx: nx,
+            ny: ny,
+            wN: cfg.image.wN,
+            hN: cfg.image.hN,
+            dataUrl: cfg.image.dataUrl,
+          });
+        } else {
+          page.annotations.push({
+            id: annoSeq++,
+            type: "text",
+            watermark: true,
+            nx: nx,
+            ny: ny,
+            text: String(cfg.text).trim(),
+            sizeN: 0.034,
+            color: cfg.color || "#e5322d",
+            font: cfg.font || "Helvetica",
+            bold: !!cfg.bold,
+            italic: !!cfg.italic,
+          });
+        }
+      });
+    });
+    await rerender("all");
+    toast("Watermark added");
+    markSaved();
+    return exportPdf({ suffix: "-watermarked" });
   }
 
   async function exportWithoutMarkedPages() {
@@ -3007,8 +3155,7 @@
         if (el.signInput) el.signInput.click();
       });
     }
-    const placeWatermarkBtn = document.getElementById("placeWatermarkBtn");
-    if (placeWatermarkBtn) placeWatermarkBtn.addEventListener("click", () => setTool("text", true));
+    bindWatermarkPanel();
     const pdfWordBtn = document.getElementById("pdfWordBtn");
     if (pdfWordBtn) pdfWordBtn.addEventListener("click", exportPdfAsText);
     const htmlPdfBtn = document.getElementById("htmlPdfBtn");
