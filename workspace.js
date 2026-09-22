@@ -2125,6 +2125,7 @@
     download(new Blob([await second.save()], { type: "application/pdf" }), base + "-part-2.pdf");
     toast("Split after page " + cut);
     status("Split after page " + cut);
+    return true;
   }
 
   function totalSourceSize() {
@@ -2385,6 +2386,7 @@
       toast("Already optimized (" + formatSize(blob.size) + ")");
       status("Compressed output " + formatSize(blob.size));
     }
+    return true;
   }
 
   function blackBoxDataUrl() {
@@ -2793,14 +2795,16 @@
     }
   }
 
-  function runPrimaryAction() {
+  async function runPrimaryAction() {
     const tool = state.selectedTool;
-    if (tool === "merge") return exportPdf({ suffix: "-merged" });
-    if (tool === "compress") return compressAndDownload();
-    if (tool === "split") return splitAfterSelection();
-    if (tool === "rotate") return exportPdf({ suffix: "-rotated" });
-    if (tool === "remove") return exportWithoutMarkedPages();
-    return exportPdf();
+    let done;
+    if (tool === "merge") done = await exportPdf({ suffix: "-merged" });
+    else if (tool === "compress") done = await compressAndDownload();
+    else if (tool === "split") done = await splitAfterSelection();
+    else if (tool === "rotate") done = await exportPdf({ suffix: "-rotated" });
+    else if (tool === "remove") done = await exportWithoutMarkedPages();
+    else done = await exportPdf();
+    if (done) setTimeout(() => window.location.reload(), 400);
   }
 
   async function exportWithoutMarkedPages() {
@@ -2825,7 +2829,7 @@
     download(new Blob([bytes], { type: "application/pdf" }), name);
     status("Exported " + name);
     toast("Downloaded " + name);
-    setTimeout(() => window.location.reload(), 400);
+    return true;
   }
 
   /* ================= bindings ================= */
