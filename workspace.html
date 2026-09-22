@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=39" />
+<link rel="stylesheet" href="workspace.css?v=40" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -348,6 +348,12 @@
           <button type="button" class="ws-list-btn" id="wmPickImage">Choose image</button>
           <span class="wm-file" id="wmImageName">No image selected</span>
         </div>
+        <label class="wm-label">Orientation:</label>
+        <div class="wm-orient" id="wmOrient">
+          <button type="button" class="wm-orient-btn is-active" data-orient="horizontal">Horizontal</button>
+          <button type="button" class="wm-orient-btn" data-orient="vertical">Vertical</button>
+          <button type="button" class="wm-orient-btn" data-orient="diagonal">Diagonal</button>
+        </div>
         <label class="wm-label">Position:</label>
         <div class="wm-pos-row">
           <div class="wm-grid" id="wmGrid">
@@ -526,6 +532,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=39"></script>
+<script src="workspace.js?v=40"></script>
 </body>
 </html>

@@ -20,7 +20,7 @@
     pendingImage: null,
     pendingSignature: null,
     edit: { mode: "select", shape: null, bold: false, font: "Helvetica", size: 12, color: "#16323f" },
-    watermark: { kind: "text", text: "Docu-Magic", font: "Helvetica", bold: true, italic: false, underline: false, color: "#e5322d", pos: "tl", mosaic: false, image: null },
+    watermark: { kind: "text", text: "Docu-Magic", font: "Helvetica", bold: true, italic: false, underline: false, color: "#e5322d", pos: "tl", orient: "horizontal", mosaic: false, image: null },
     selAnno: null,
     history: [],
     future: [],
@@ -406,6 +406,9 @@
       span.style.fontStyle = a.italic ? "italic" : "normal";
       node.style.left = px + "px";
       node.style.top = py + "px";
+      node.style.transformOrigin = "left top";
+      if (a.orient === "vertical") node.style.transform = "rotate(-90deg)";
+      else if (a.orient === "diagonal") node.style.transform = "rotate(-45deg)";
       node.appendChild(span);
     } else {
       const img = document.createElement("img");
@@ -2013,6 +2016,7 @@
             }
             const lines = String(a.text).split(/\r?\n/);
             const lineHeight = a.sizeN * viewport.width * 1.2;
+            const textRot = a.orient === "vertical" ? 90 : a.orient === "diagonal" ? 45 : 0;
             lines.forEach((line, li) => {
               copied.drawText(sanitizeWinAnsi(line), {
                 x: pdfPoint[0],
@@ -2020,7 +2024,7 @@
                 size: a.sizeN * viewport.width,
                 font: font,
                 color: colorToRgb(a.color),
-                rotate: PDFLib.degrees(rot),
+                rotate: PDFLib.degrees(rot + textRot),
               });
             });
           } else {
@@ -2975,6 +2979,9 @@
     document.querySelectorAll("#wmGrid [data-pos]").forEach((cell) => {
       cell.classList.toggle("is-active", cell.dataset.pos === cfg.pos);
     });
+    document.querySelectorAll("#wmOrient [data-orient]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.orient === (cfg.orient || "horizontal"));
+    });
   }
 
   function bindWatermarkPanel() {
@@ -3002,6 +3009,12 @@
     document.querySelectorAll("#wmGrid [data-pos]").forEach((cell) => {
       cell.addEventListener("click", () => {
         state.watermark.pos = cell.dataset.pos;
+        syncWatermarkPanel();
+      });
+    });
+    document.querySelectorAll("#wmOrient [data-orient]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.watermark.orient = btn.dataset.orient;
         syncWatermarkPanel();
       });
     });
@@ -3054,6 +3067,7 @@
             font: cfg.font || "Helvetica",
             bold: !!cfg.bold,
             italic: !!cfg.italic,
+            orient: cfg.orient || "horizontal",
           });
         }
       });
