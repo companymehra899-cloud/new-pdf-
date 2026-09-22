@@ -429,7 +429,7 @@ html[data-tool="edit"] .ws-zoom-float { top: 74px; }
 html[data-layout="cards"] .ws-page-stack,
 .ws-page-stack.is-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fill, 168px);
+  grid-template-columns: repeat(auto-fill, var(--card-w, 168px));
   align-content: start;
   align-items: start;
   justify-content: start;
@@ -489,7 +489,8 @@ html[data-layout="cards"] .ws-page {
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
-  max-width: 168px;
+  max-width: var(--card-w, 168px);
+  width: var(--card-w, 168px);
 }
 .ws-file-card.is-selected {
   border-color: transparent;
@@ -507,9 +508,9 @@ html[data-layout="cards"] .ws-page {
   overflow: hidden;
 }
 .ws-file-card .ws-card-cover {
-  height: 214px;
-  min-height: 214px;
-  max-height: 214px;
+  height: var(--card-h, 214px);
+  min-height: var(--card-h, 214px);
+  max-height: var(--card-h, 214px);
   background: #f3f4f6;
   padding: 14px 14px 8px;
 }
@@ -711,7 +712,8 @@ html[data-layout="cards"] .ws-page {
   border-radius: 0;
   box-shadow: none;
   overflow: visible;
-  max-width: 168px;
+  max-width: var(--card-w, 168px);
+  width: var(--card-w, 168px);
 }
 .ws-thumb-card.is-selected {
   border-color: transparent;
@@ -725,9 +727,9 @@ html[data-layout="cards"] .ws-page {
   overflow: hidden;
 }
 .ws-thumb-card .ws-card-cover {
-  height: 214px;
-  min-height: 214px;
-  max-height: 214px;
+  height: var(--card-h, 214px);
+  min-height: var(--card-h, 214px);
+  max-height: var(--card-h, 214px);
   background: #f3f4f6;
   padding: 14px 14px 8px;
 }

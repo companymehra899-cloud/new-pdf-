@@ -13,7 +13,7 @@
     sources: [],
     pages: [],
     selected: new Set(),
-    zoom: 0.6,
+    zoom: 0.4,
     current: 0,
     tool: "select",
     selectedTool: "",
@@ -1219,17 +1219,19 @@
     el.pageStack.innerHTML = "";
     el.pageStack.classList.remove("is-cards");
     const zoomFloat = document.getElementById("zoomFloat");
-    if (zoomFloat) zoomFloat.hidden = isFileCardTool() || isPageCardTool();
+    if (zoomFloat) zoomFloat.hidden = false;
     if (!state.pages.length) {
       renderEmptyState();
       return;
     }
     if (isFileCardTool()) {
       await renderFileCards();
+      applyCardZoom();
       return;
     }
     if (isPageCardTool()) {
       await renderPageCards();
+      applyCardZoom();
       return;
     }
     const scale = BASE_SCALE * state.zoom;
@@ -2511,6 +2513,14 @@
     markSaved();
   }
 
+  function applyCardZoom() {
+    const stack = el.pageStack;
+    if (!stack) return;
+    const factor = state.zoom / 0.4;
+    stack.style.setProperty("--card-w", Math.round(168 * factor) + "px");
+    stack.style.setProperty("--card-h", Math.round(214 * factor) + "px");
+  }
+
   function updateZoomUI() {
     const pct = Math.round(state.zoom * 100) + "%";
     el.zoomLabel.textContent = pct;
@@ -2525,6 +2535,10 @@
   function setZoom(value) {
     state.zoom = Math.min(1, Math.max(0, +Number(value).toFixed(2)));
     updateZoomUI();
+    if (isFileCardTool() || isPageCardTool()) {
+      applyCardZoom();
+      return;
+    }
     renderStack();
   }
 
