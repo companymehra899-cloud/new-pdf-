@@ -2799,7 +2799,32 @@
     if (tool === "compress") return compressAndDownload();
     if (tool === "split") return splitAfterSelection();
     if (tool === "rotate") return exportPdf({ suffix: "-rotated" });
+    if (tool === "remove") return exportWithoutMarkedPages();
     return exportPdf();
+  }
+
+  async function exportWithoutMarkedPages() {
+    if (!state.pages.length) {
+      toast("Nothing to export yet", true);
+      return;
+    }
+    if (!state.selected.size) {
+      toast("Select pages to remove first", true);
+      return;
+    }
+    const keep = state.pages.map((_, i) => i).filter((i) => !state.selected.has(i));
+    if (!keep.length) {
+      toast("At least one page must remain", true);
+      return;
+    }
+    const out = await withProgress("Removing pages...", (setPct) =>
+      buildPdf(keep, (d, t) => setPct(d / t))
+    );
+    const bytes = await out.save({ useObjectStreams: true });
+    const name = baseName(el.fileName.value) + "-removed.pdf";
+    download(new Blob([bytes], { type: "application/pdf" }), name);
+    status("Exported " + name);
+    toast("Downloaded " + name);
   }
 
   /* ================= bindings ================= */
