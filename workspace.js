@@ -2361,6 +2361,56 @@
     status("Exported text document");
   }
 
+  function canvasToJpegBytes(canvas, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            reject(new Error("JPEG encode failed"));
+            return;
+          }
+          blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf))).catch(reject);
+        },
+        "image/jpeg",
+        quality
+      );
+    });
+  }
+
+  async function renderPageToJpeg(entry, maxEdge, quality) {
+    const src = state.sources[entry.fileId];
+    const pj = await src.pdf.getPage(entry.sourceIndex + 1);
+    const base = pj.getViewport({ scale: 1, rotation: totalRotation(entry) });
+    const longEdge = Math.max(base.width, base.height);
+    const scale = Math.min(1, maxEdge / Math.max(1, longEdge));
+    const viewport = pj.getViewport({ scale: scale, rotation: totalRotation(entry) });
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.floor(viewport.width));
+    canvas.height = Math.max(1, Math.floor(viewport.height));
+    const ctx = canvas.getContext("2d", { alpha: false });
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await pj.render({ canvasContext: ctx, viewport: viewport }).promise;
+    const bytes = await canvasToJpegBytes(canvas, quality);
+    canvas.width = 0;
+    canvas.height = 0;
+    return { bytes: bytes, width: viewport.width, height: viewport.height };
+  }
+
+  async function buildCompressedPdf(indices, maxEdge, quality, progress) {
+    const out = await PDFLib.PDFDocument.create();
+    for (let k = 0; k < indices.length; k++) {
+      const entry = state.pages[indices[k]];
+      if (!entry) continue;
+      if (progress) progress(k + 1, indices.length);
+      const jpeg = await renderPageToJpeg(entry, maxEdge, quality);
+      const image = await out.embedJpg(jpeg.bytes);
+      const page = out.addPage([jpeg.width, jpeg.height]);
+      page.drawImage(image, { x: 0, y: 0, width: jpeg.width, height: jpeg.height });
+    }
+    return out.save({ useObjectStreams: true, addDefaultPage: false });
+  }
+
   async function compressAndDownload() {
     if (!state.pages.length) {
       toast("Add a file first", true);
@@ -2372,15 +2422,41 @@
       return;
     }
     const original = totalSourceSize();
-    const out = await withProgress("Compressing PDF...", (setPct) =>
-      buildPdf(indices, (d, t) => setPct(d / t))
-    );
-    const bytes = await out.save({ useObjectStreams: true, addDefaultPage: false });
-    const blob = new Blob([bytes], { type: "application/pdf" });
+    const pageCount = Math.max(1, indices.length);
+    const targetLow = original >= 80 * 1024 * 1024 ? 12 * 1024 * 1024 : Math.max(original * 0.14, 1.2 * 1024 * 1024);
+    const targetHigh = original >= 80 * 1024 * 1024 ? 18 * 1024 * 1024 : Math.max(original * 0.22, 1.8 * 1024 * 1024);
+    const bytesPerPage = targetHigh / pageCount;
+    let maxEdge = bytesPerPage > 180 * 1024 ? 1100 : bytesPerPage > 90 * 1024 ? 900 : 720;
+    let quality = bytesPerPage > 180 * 1024 ? 0.52 : 0.42;
+    const attempts = [
+      { maxEdge: maxEdge, quality: quality },
+      { maxEdge: Math.round(maxEdge * 0.82), quality: Math.max(0.28, quality - 0.12) },
+      { maxEdge: Math.round(maxEdge * 0.68), quality: Math.max(0.22, quality - 0.2) },
+    ];
+
+    let best = null;
+    try {
+      for (let i = 0; i < attempts.length; i++) {
+        const attempt = attempts[i];
+        const bytes = await withProgress(
+          i === 0 ? "Compressing PDF..." : "Recompressing for smaller size...",
+          (setPct) => buildCompressedPdf(indices, attempt.maxEdge, attempt.quality, (d, t) => setPct(d / t))
+        );
+        best = bytes;
+        if (bytes.length <= targetHigh) break;
+        if (bytes.length <= targetLow * 1.35 && i === 0) break;
+      }
+    } catch (err) {
+      console.error(err);
+      toast("Compression failed: " + err.message, true);
+      return;
+    }
+
+    const blob = new Blob([best], { type: "application/pdf" });
     download(blob, baseName(el.fileName.value) + "-compressed.pdf");
     const diff = original - blob.size;
     if (diff > 0) {
-      toast("Compressed - saved " + formatSize(diff));
+      toast("Compressed " + formatSize(original) + " to " + formatSize(blob.size));
       status("Compressed: " + formatSize(original) + " to " + formatSize(blob.size));
     } else {
       toast("Already optimized (" + formatSize(blob.size) + ")");
