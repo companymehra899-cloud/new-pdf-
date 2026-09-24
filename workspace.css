@@ -705,7 +705,6 @@ html[data-layout="cards"] .ws-page {
   background: #fff;
   box-shadow: 0 1px 6px rgba(0,0,0,.08);
 }
-.ws-thumb-card .ws-page-num,
 .ws-thumb-card .ws-thumb-rot {
   display: none;
 }
@@ -716,38 +715,6 @@ html[data-layout="cards"] .ws-page {
   font-weight: 600;
   color: #374151;
   text-align: center;
-}
-.ws-thumb-card .ws-hover-bar {
-  display: none;
-}
-.ws-hover-btn {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  background: rgba(22, 50, 63, .88);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 6px 14px rgba(12,32,44,.22);
-}
-.ws-hover-btn svg { width: 15px; height: 15px; }
-.ws-hover-btn:hover { background: #1786c4; }
-.ws-hover-btn[title="Delete"]:hover { background: #d6455f; }
-.ws-page-num {
-  position: absolute;
-  left: 50%;
-  bottom: 8px;
-  transform: translateX(-50%);
-  min-width: 28px;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: rgba(22, 50, 63, .86);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 800;
-  display: grid;
-  place-items: center;
 }
 /* Remove-pages tool: centered cross on cards marked for deletion */
 .ws-card-cross {
