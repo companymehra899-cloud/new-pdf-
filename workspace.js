@@ -1011,8 +1011,6 @@
       else el.pageStack.insertBefore(fromNode, toNode);
       el.pageStack.querySelectorAll(".ws-page[data-index]").forEach((card, i) => {
         card.dataset.index = String(i);
-        const num = card.querySelector(".ws-page-num, .ws-card-caption");
-        if (num && card.querySelector(".ws-page-num")) num.textContent = String(i + 1);
         const caption = card.querySelector(".ws-card-caption");
         if (caption) caption.textContent = "Page " + (i + 1);
       });
@@ -1167,7 +1165,6 @@
       wrap.appendChild(caption);
 
       wrap.addEventListener("click", (e) => {
-        if (e.target.closest(".ws-hover-bar")) return;
         selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
       });
       wrap.addEventListener("dblclick", (e) => {
