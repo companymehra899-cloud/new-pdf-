@@ -1296,6 +1296,15 @@ html[data-tool="watermark"] .ws-workspace-head h3 {
 }
 .wm-check input { width: 16px; height: 16px; accent-color: #e5322d; }
 
+.crop-type-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.crop-type-box .wm-label {
+  margin-top: 4px;
+}
+
 .ws-info { list-style: none; margin: 0; padding: 0; }
 .ws-info li {
   display: flex;

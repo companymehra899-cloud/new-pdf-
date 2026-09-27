@@ -183,6 +183,8 @@
         srcRotation: p.srcRotation,
         rotation: p.rotation,
         cropN: p.cropN,
+        cropBox: p.cropBox,
+        cropType: p.cropType,
         editedItems: p.editedItems,
         annotations: p.annotations,
       }))
@@ -775,6 +777,27 @@
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
     await pj.render({ canvasContext: ctx, viewport: viewport }).promise;
+    if (entry.cropBox) {
+      const sx = Math.max(0, entry.cropBox.nx * canvas.width);
+      const sy = Math.max(0, entry.cropBox.ny * canvas.height);
+      const sw = Math.max(1, entry.cropBox.nw * canvas.width);
+      const sh = Math.max(1, entry.cropBox.nh * canvas.height);
+      const cropped = document.createElement("canvas");
+      cropped.width = Math.max(1, Math.floor(Math.min(sw, canvas.width - sx)));
+      cropped.height = Math.max(1, Math.floor(Math.min(sh, canvas.height - sy)));
+      cropped.getContext("2d").drawImage(
+        canvas,
+        sx,
+        sy,
+        cropped.width,
+        cropped.height,
+        0,
+        0,
+        cropped.width,
+        cropped.height
+      );
+      return cropped;
+    }
     if (entry.cropN) {
       const insetX = canvas.width * entry.cropN;
       const insetY = canvas.height * entry.cropN;
@@ -2144,7 +2167,15 @@
       const [copied] = await out.copyPages(libDoc, [entry.sourceIndex]);
       const rot = totalRotation(entry);
       if (rot) copied.setRotation(PDFLib.degrees(rot));
-      if (entry.cropN) {
+      if (entry.cropBox) {
+        const size = copied.getSize();
+        const w = Math.max(1, entry.cropBox.nw * size.width);
+        const h = Math.max(1, entry.cropBox.nh * size.height);
+        const x = entry.cropBox.nx * size.width;
+        const y = size.height - entry.cropBox.ny * size.height - h;
+        copied.setCropBox(x, y, w, h);
+        copied.setMediaBox(x, y, w, h);
+      } else if (entry.cropN) {
         const size = copied.getSize();
         const insetX = size.width * entry.cropN;
         const insetY = size.height * entry.cropN;
@@ -2649,6 +2680,66 @@
     markSaved();
   }
 
+  const CROP_SIZES = {
+    a4: { w: 595.28, h: 841.89, label: "A4" },
+    letter: { w: 612, h: 792, label: "Letter" },
+    legal: { w: 612, h: 1008, label: "Legal" },
+    a5: { w: 419.53, h: 595.28, label: "A5" },
+    a3: { w: 841.89, h: 1190.55, label: "A3" },
+  };
+
+  function cropBoxForSize(pageW, pageH, targetW, targetH) {
+    const pageLandscape = pageW >= pageH;
+    let tw = targetW;
+    let th = targetH;
+    if (pageLandscape && tw < th) {
+      const tmp = tw;
+      tw = th;
+      th = tmp;
+    }
+    const scale = Math.min(pageW / tw, pageH / th);
+    const w = tw * scale;
+    const h = th * scale;
+    return {
+      nx: (pageW - w) / 2 / pageW,
+      ny: (pageH - h) / 2 / pageH,
+      nw: w / pageW,
+      nh: h / pageH,
+    };
+  }
+
+  async function pagePointSize(entry) {
+    const src = state.sources[entry.fileId];
+    if (src && src.lib) {
+      const page = src.lib.getPage(entry.sourceIndex);
+      const size = page.getSize();
+      return { w: size.width, h: size.height };
+    }
+    const viewport = await pageViewport(entry, 1);
+    return { w: viewport.width, h: viewport.height };
+  }
+
+  async function applyCropType(type) {
+    const spec = CROP_SIZES[type];
+    if (!spec) return;
+    const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
+    if (!targets.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    pushHistory();
+    for (const i of targets) {
+      const entry = state.pages[i];
+      const size = await pagePointSize(entry);
+      entry.cropBox = cropBoxForSize(size.w, size.h, spec.w, spec.h);
+      entry.cropType = type;
+      entry.cropN = 0;
+    }
+    rerender("all");
+    toast("Cropped to " + spec.label + " on all pages");
+    markSaved();
+  }
+
   function cropMargins() {
     const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
     if (!targets.length) {
@@ -2658,7 +2749,11 @@
     pushHistory();
     targets.forEach((i) => {
       state.pages[i].cropN = 0.06;
+      state.pages[i].cropBox = null;
+      state.pages[i].cropType = "";
     });
+    const typeEl = document.getElementById("cropType");
+    if (typeEl) typeEl.value = "";
     rerender("all");
     toast("Margins cropped. Download to apply.");
     markSaved();
@@ -2901,7 +2996,7 @@
     remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: [], tab: "page", action: "Remove pages" },
     repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: [], tab: "file", action: "Repair PDF" },
     pagenumbers: { title: "Page numbers", hint: "Stamp a page number on every page.", chips: [], page: [], file: ["pagenumbers", "info", "files"], tab: "file", action: "Download PDF" },
-    crop: { title: "Crop PDF", hint: "Trim equal margins from selected pages.", chips: [], page: ["crop"], file: [], tab: "page", action: "Crop PDF" },
+    crop: { title: "Crop PDF", hint: "Trim equal margins, or pick a crop type to resize every page.", chips: [], page: ["crop"], file: [], tab: "page", action: "Crop PDF" },
     redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image" },
   };
 
@@ -3040,9 +3135,15 @@
     else if (tool === "crop") {
       const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
       if (targets.length) {
-        targets.forEach((i) => {
-          if (!state.pages[i].cropN) state.pages[i].cropN = 0.06;
-        });
+        const typeEl = document.getElementById("cropType");
+        const type = typeEl && typeEl.value;
+        if (type && CROP_SIZES[type]) {
+          await applyCropType(type);
+        } else {
+          targets.forEach((i) => {
+            if (!state.pages[i].cropN && !state.pages[i].cropBox) state.pages[i].cropN = 0.06;
+          });
+        }
       }
       done = await exportPdf({ suffix: "-cropped" });
     }
@@ -3340,6 +3441,12 @@
     if (pageNumbersBtn) pageNumbersBtn.addEventListener("click", addPageNumbers);
     const cropBtn = document.getElementById("cropBtn");
     if (cropBtn) cropBtn.addEventListener("click", cropMargins);
+    const cropType = document.getElementById("cropType");
+    if (cropType) {
+      cropType.addEventListener("change", () => {
+        if (cropType.value) applyCropType(cropType.value);
+      });
+    }
     const redactBtn = document.getElementById("redactBtn");
     if (redactBtn) redactBtn.addEventListener("click", startRedact);
 

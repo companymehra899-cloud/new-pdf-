@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=43" />
+<link rel="stylesheet" href="workspace.css?v=44" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -467,10 +467,23 @@
       <div class="ws-panel-block" data-scope="crop">
         <h4>Crop PDF</h4>
         <p class="ws-note">Trim equal margins from selected pages.</p>
-        <button type="button" class="ws-list-btn" id="cropBtn">
-          <svg viewBox="0 0 24 24"><path d="M6 3v15h15M3 6h15v15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          Crop margins
-        </button>
+        <div class="crop-type-row">
+          <button type="button" class="ws-list-btn" id="cropBtn">
+            <svg viewBox="0 0 24 24"><path d="M6 3v15h15M3 6h15v15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            Crop margins
+          </button>
+          <div class="crop-type-box">
+            <label class="wm-label" for="cropType">Crop type</label>
+            <select class="ws-input" id="cropType">
+              <option value="">Select size</option>
+              <option value="a4">A4 (210 x 297 mm)</option>
+              <option value="letter">Letter (8.5 x 11 in)</option>
+              <option value="legal">Legal (8.5 x 14 in)</option>
+              <option value="a5">A5 (148 x 210 mm)</option>
+              <option value="a3">A3 (297 x 420 mm)</option>
+            </select>
+          </div>
+        </div>
       </div>
       <div class="ws-panel-block" data-scope="redact">
         <h4>Redact PDF</h4>
@@ -546,6 +559,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=43"></script>
+<script src="workspace.js?v=44"></script>
 </body>
 </html>
