@@ -20,7 +20,7 @@
     pendingImage: null,
     pendingSignature: null,
     edit: { mode: "select", shape: null, bold: false, font: "Helvetica", size: 12, color: "#16323f" },
-    watermark: { kind: "text", text: "Docu-Magic", font: "Helvetica", bold: true, italic: false, underline: false, color: "#e5322d", pos: "tl", orient: "horizontal", mosaic: false, image: null },
+    watermark: { kind: "text", text: "Docu-Magic", font: "Helvetica", bold: true, italic: false, underline: false, color: "#e5322d", pos: "tl", orient: "horizontal", mosaic: false, size: 36, image: null },
     selAnno: null,
     history: [],
     future: [],
@@ -1930,6 +1930,120 @@
     return out;
   }
 
+  function contentStreamCount(page) {
+    const contents = page.node.Contents();
+    if (!contents) return 0;
+    if (typeof contents.size === "function") return contents.size();
+    return 1;
+  }
+
+  function moveNewContentUnderPage(page, beforeCount) {
+    const contents = page.node.Contents();
+    if (!contents || typeof contents.size !== "function") return;
+    const total = contents.size();
+    if (total <= beforeCount) return;
+    const added = [];
+    for (let i = total - 1; i >= beforeCount; i--) {
+      added.unshift(contents.get(i));
+      contents.remove(i);
+    }
+    let insertAt = 0;
+    if (beforeCount > 0) insertAt = 1;
+    for (let i = 0; i < added.length; i++) {
+      contents.insert(insertAt + i, added[i]);
+    }
+  }
+
+  async function drawPageAnnotation(copied, a, viewport, rot, out, fontCache, imageCache) {
+    const px = a.nx * viewport.width;
+    const pyTop = a.ny * viewport.height;
+    const pdfPoint = viewport.convertToPdfPoint(px, pyTop);
+
+    if (a.type === "cover") {
+      copied.drawRectangle({
+        x: pdfPoint[0],
+        y: pdfPoint[1] - a.hN * viewport.height,
+        width: a.wN * viewport.width,
+        height: a.hN * viewport.height,
+        color: colorToRgb(a.color || "#ffffff"),
+        rotate: PDFLib.degrees(rot),
+      });
+      return;
+    }
+    if (a.type === "shape") {
+      const w = a.wN * viewport.width;
+      const h = a.hN * viewport.height;
+      const borderWidth = Math.max(0.5, a.strokeWN * viewport.width);
+      if (a.shape === "circle") {
+        const opts = {
+          x: pdfPoint[0] + w / 2,
+          y: pdfPoint[1] - h / 2,
+          xScale: w / 2,
+          yScale: h / 2,
+          borderColor: colorToRgb(a.color),
+          borderWidth: borderWidth,
+          rotate: PDFLib.degrees(rot),
+        };
+        if (a.fill) opts.color = colorToRgb(a.fill);
+        copied.drawEllipse(opts);
+      } else {
+        const opts = {
+          x: pdfPoint[0],
+          y: pdfPoint[1] - h,
+          width: w,
+          height: h,
+          borderColor: colorToRgb(a.color),
+          borderWidth: borderWidth,
+          rotate: PDFLib.degrees(rot),
+        };
+        if (a.fill) opts.color = colorToRgb(a.fill);
+        copied.drawRectangle(opts);
+      }
+      return;
+    }
+    if (a.type === "text") {
+      const key = "std:" + standardFontKey(a.font, a.bold, a.italic);
+      let font = fontCache.get(key);
+      if (!font) {
+        font = await out.embedFont(standardFontName(a.font, a.bold, a.italic));
+        fontCache.set(key, font);
+      }
+      const lines = String(a.text).split(/\r?\n/);
+      const lineHeight = a.sizeN * viewport.width * 1.2;
+      const textRot = a.orient === "vertical" ? 90 : a.orient === "diagonal" ? 45 : 0;
+      lines.forEach((line, li) => {
+        copied.drawText(sanitizeWinAnsi(line), {
+          x: pdfPoint[0],
+          y: pdfPoint[1] - li * lineHeight,
+          size: a.sizeN * viewport.width,
+          font: font,
+          color: colorToRgb(a.color),
+          rotate: PDFLib.degrees(rot + textRot),
+        });
+      });
+      return;
+    }
+    let img = imageCache.get(a.dataUrl);
+    if (!img) {
+      const bytes = bytesFromDataUrl(a.dataUrl);
+      if (/^data:image\/jpe?g/i.test(a.dataUrl)) {
+        img = await out.embedJpg(bytes);
+      } else {
+        img = await out.embedPng(bytes);
+      }
+      imageCache.set(a.dataUrl, img);
+    }
+    const w = a.wN * viewport.width;
+    const h = a.hN * viewport.height;
+    copied.drawImage(img, {
+      x: pdfPoint[0],
+      y: pdfPoint[1] - h,
+      width: w,
+      height: h,
+      rotate: PDFLib.degrees(rot),
+    });
+  }
+
   async function buildPdf(indices, progress) {
     const out = await PDFLib.PDFDocument.create();
     const libCache = new Map();
@@ -1961,90 +2075,18 @@
 
       if (entry.annotations.length) {
         const viewport = await pageViewport(entry, 1);
-        for (const a of entry.annotations) {
-          const px = a.nx * viewport.width;
-          const pyTop = a.ny * viewport.height;
-          const pdfPoint = viewport.convertToPdfPoint(px, pyTop);
-
-          if (a.type === "cover") {
-            copied.drawRectangle({
-              x: pdfPoint[0],
-              y: pdfPoint[1] - a.hN * viewport.height,
-              width: a.wN * viewport.width,
-              height: a.hN * viewport.height,
-              color: colorToRgb(a.color || "#ffffff"),
-              rotate: PDFLib.degrees(rot),
-            });
-          } else if (a.type === "shape") {
-            const w = a.wN * viewport.width;
-            const h = a.hN * viewport.height;
-            const borderWidth = Math.max(0.5, a.strokeWN * viewport.width);
-            if (a.shape === "circle") {
-              const opts = {
-                x: pdfPoint[0] + w / 2,
-                y: pdfPoint[1] - h / 2,
-                xScale: w / 2,
-                yScale: h / 2,
-                borderColor: colorToRgb(a.color),
-                borderWidth: borderWidth,
-                rotate: PDFLib.degrees(rot),
-              };
-              if (a.fill) opts.color = colorToRgb(a.fill);
-              copied.drawEllipse(opts);
-            } else {
-              const opts = {
-                x: pdfPoint[0],
-                y: pdfPoint[1] - h,
-                width: w,
-                height: h,
-                borderColor: colorToRgb(a.color),
-                borderWidth: borderWidth,
-                rotate: PDFLib.degrees(rot),
-              };
-              if (a.fill) opts.color = colorToRgb(a.fill);
-              copied.drawRectangle(opts);
-            }
-          } else if (a.type === "text") {
-            const key = "std:" + standardFontKey(a.font, a.bold, a.italic);
-            let font = fontCache.get(key);
-            if (!font) {
-              font = await out.embedFont(standardFontName(a.font, a.bold, a.italic));
-              fontCache.set(key, font);
-            }
-            const lines = String(a.text).split(/\r?\n/);
-            const lineHeight = a.sizeN * viewport.width * 1.2;
-            const textRot = a.orient === "vertical" ? 90 : a.orient === "diagonal" ? 45 : 0;
-            lines.forEach((line, li) => {
-              copied.drawText(sanitizeWinAnsi(line), {
-                x: pdfPoint[0],
-                y: pdfPoint[1] - li * lineHeight,
-                size: a.sizeN * viewport.width,
-                font: font,
-                color: colorToRgb(a.color),
-                rotate: PDFLib.degrees(rot + textRot),
-              });
-            });
-          } else {
-            let img = imageCache.get(a.dataUrl);
-            if (!img) {
-              const bytes = bytesFromDataUrl(a.dataUrl);
-              if (/^data:image\/jpe?g/i.test(a.dataUrl)) {
-                img = await out.embedJpg(bytes);
-              } else {
-                img = await out.embedPng(bytes);
-              }
-              imageCache.set(a.dataUrl, img);
-            }
-            const w = a.wN * viewport.width;
-            const h = a.hN * viewport.height;
-            copied.drawImage(img, {
-              x: pdfPoint[0],
-              y: pdfPoint[1] - h,
-              width: w,
-              height: h,
-              rotate: PDFLib.degrees(rot),
-            });
+        const under = entry.annotations.filter((a) => a.watermark);
+        const over = entry.annotations.filter((a) => !a.watermark);
+        if (under.length) {
+          copied.node.normalize();
+          const before = contentStreamCount(copied);
+          for (const a of under) {
+            await drawPageAnnotation(copied, a, viewport, rot, out, fontCache, imageCache);
           }
+          moveNewContentUnderPage(copied, before);
+        }
+        for (const a of over) {
+          await drawPageAnnotation(copied, a, viewport, rot, out, fontCache, imageCache);
         }
       }
       out.addPage(copied);
@@ -2947,15 +2989,23 @@
     return [map[cfg.pos] || map.tl];
   }
 
+  function clampWatermarkSize(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return 36;
+    return Math.max(8, Math.min(200, Math.round(v)));
+  }
+
   function readWatermarkForm() {
     const textEl = document.getElementById("wmText");
     const fontEl = document.getElementById("wmFont");
     const colorEl = document.getElementById("wmColor");
     const mosaicEl = document.getElementById("wmMosaic");
+    const sizeEl = document.getElementById("wmSize");
     if (textEl) state.watermark.text = textEl.value;
     if (fontEl) state.watermark.font = fontEl.value;
     if (colorEl) state.watermark.color = colorEl.value;
     if (mosaicEl) state.watermark.mosaic = mosaicEl.checked;
+    if (sizeEl) state.watermark.size = clampWatermarkSize(sizeEl.value);
   }
 
   function syncWatermarkPanel() {
@@ -2981,6 +3031,8 @@
       btn.classList.toggle("is-active", on);
       btn.setAttribute("aria-pressed", on ? "true" : "false");
     });
+    const sizeEl = document.getElementById("wmSize");
+    if (sizeEl) sizeEl.value = String(clampWatermarkSize(cfg.size));
   }
 
   function bindWatermarkPanel() {
@@ -3023,6 +3075,27 @@
     }
     const pick = document.getElementById("wmPickImage");
     if (pick) pick.addEventListener("click", () => el.imageInput.click());
+    const sizeEl = document.getElementById("wmSize");
+    const sizeDown = document.getElementById("wmSizeDown");
+    const sizeUp = document.getElementById("wmSizeUp");
+    if (sizeEl) {
+      sizeEl.addEventListener("change", () => {
+        state.watermark.size = clampWatermarkSize(sizeEl.value);
+        syncWatermarkPanel();
+      });
+    }
+    if (sizeDown) {
+      sizeDown.addEventListener("click", () => {
+        state.watermark.size = clampWatermarkSize((state.watermark.size || 36) - 2);
+        syncWatermarkPanel();
+      });
+    }
+    if (sizeUp) {
+      sizeUp.addEventListener("click", () => {
+        state.watermark.size = clampWatermarkSize((state.watermark.size || 36) + 2);
+        syncWatermarkPanel();
+      });
+    }
     syncWatermarkPanel();
   }
 
@@ -3065,7 +3138,7 @@
             nx: nx,
             ny: ny,
             text: String(cfg.text).trim(),
-            sizeN: 0.034,
+            sizeN: clampWatermarkSize(cfg.size) / 1000,
             color: cfg.color || "#e5322d",
             font: cfg.font || "Helvetica",
             bold: !!cfg.bold,

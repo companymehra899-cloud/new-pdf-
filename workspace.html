@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="workspace.css?v=41" />
+<link rel="stylesheet" href="workspace.css?v=42" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
 </head>
 <body class="ws-body">
@@ -342,6 +342,12 @@
             <button type="button" class="wm-fmt" id="wmUnderline" title="Underline"><u>U</u></button>
             <input type="color" class="wm-color" id="wmColor" value="#e5322d" title="Colour" />
           </div>
+          <label class="wm-label">Font size:</label>
+          <div class="wm-size">
+            <button type="button" class="wm-fmt" id="wmSizeDown" title="Decrease font size">-</button>
+            <input class="ws-input wm-size-input" id="wmSize" type="number" min="8" max="200" step="2" value="36" />
+            <button type="button" class="wm-fmt" id="wmSizeUp" title="Increase font size">+</button>
+          </div>
         </div>
         <div id="wmImageFields" hidden>
           <label class="wm-label">Image:</label>
@@ -532,6 +538,6 @@
 
 <script src="vendor/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="workspace.js?v=41"></script>
+<script src="workspace.js?v=42"></script>
 </body>
 </html>
