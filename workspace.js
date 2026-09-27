@@ -777,6 +777,7 @@
     canvas.width = Math.floor(viewport.width);
     canvas.height = Math.floor(viewport.height);
     await pj.render({ canvasContext: ctx, viewport: viewport }).promise;
+    if (state.selectedTool === "crop") return canvas;
     if (entry.cropBox) {
       const sx = Math.max(0, entry.cropBox.nx * canvas.width);
       const sy = Math.max(0, entry.cropBox.ny * canvas.height);
@@ -1159,7 +1160,15 @@
       const canvas = await renderPageCanvas(entry, scale);
       canvas.style.width = "100%";
       canvas.style.height = "auto";
-      cover.appendChild(canvas);
+      if (state.selectedTool === "crop") {
+        const pageBox = document.createElement("div");
+        pageBox.className = "ws-crop-page";
+        pageBox.appendChild(canvas);
+        bindCropSelect(pageBox, i);
+        cover.appendChild(pageBox);
+      } else {
+        cover.appendChild(canvas);
+      }
       sheet.appendChild(cover);
 
       const cross = document.createElement("div");
@@ -1188,13 +1197,16 @@
       wrap.appendChild(caption);
 
       wrap.addEventListener("click", (e) => {
+        if (e.target.closest(".ws-crop-overlay")) return;
         selectPage(i, e.shiftKey || e.metaKey || e.ctrlKey);
       });
       wrap.addEventListener("dblclick", (e) => {
         e.preventDefault();
         openLightbox(i);
       });
-      bindCardDrag(wrap, String(i), (from) => movePageTo(from, wrap.dataset.index));
+      if (state.selectedTool !== "crop") {
+        bindCardDrag(wrap, String(i), (from) => movePageTo(from, wrap.dataset.index));
+      }
       el.pageStack.appendChild(wrap);
     }
     applySelectionClasses();
@@ -2738,6 +2750,126 @@
     rerender("all");
     toast("Cropped to " + spec.label + " on all pages");
     markSaved();
+  }
+
+  function cropBoxFromCropN(n) {
+    const v = Number(n) || 0;
+    return { nx: v, ny: v, nw: Math.max(0.02, 1 - v * 2), nh: Math.max(0.02, 1 - v * 2) };
+  }
+
+  function currentCropBox(entry) {
+    if (entry.cropBox) return entry.cropBox;
+    if (entry.cropN) return cropBoxFromCropN(entry.cropN);
+    return null;
+  }
+
+  function clampCropBox(box) {
+    const nx = Math.min(0.98, Math.max(0, box.nx));
+    const ny = Math.min(0.98, Math.max(0, box.ny));
+    return {
+      nx: nx,
+      ny: ny,
+      nw: Math.min(1 - nx, Math.max(0.02, box.nw)),
+      nh: Math.min(1 - ny, Math.max(0.02, box.nh)),
+    };
+  }
+
+  function bindCropSelect(host, index) {
+    const entry = state.pages[index];
+    if (!entry) return;
+    const overlay = document.createElement("div");
+    overlay.className = "ws-crop-overlay";
+    const frame = document.createElement("div");
+    frame.className = "ws-crop-frame";
+    ["nw", "ne", "sw", "se"].forEach((pos) => {
+      const handle = document.createElement("div");
+      handle.className = "ws-crop-handle ws-crop-handle-" + pos;
+      handle.dataset.handle = pos;
+      frame.appendChild(handle);
+    });
+    overlay.appendChild(frame);
+    host.appendChild(overlay);
+
+    function syncFrame() {
+      const box = currentCropBox(entry);
+      if (!box) {
+        frame.hidden = true;
+        return;
+      }
+      frame.hidden = false;
+      frame.style.left = box.nx * 100 + "%";
+      frame.style.top = box.ny * 100 + "%";
+      frame.style.width = box.nw * 100 + "%";
+      frame.style.height = box.nh * 100 + "%";
+    }
+    syncFrame();
+
+    function normFromEvent(e) {
+      const rect = overlay.getBoundingClientRect();
+      return {
+        x: Math.min(1, Math.max(0, (e.clientX - rect.left) / Math.max(1, rect.width))),
+        y: Math.min(1, Math.max(0, (e.clientY - rect.top) / Math.max(1, rect.height))),
+      };
+    }
+
+    overlay.addEventListener("pointerdown", (e) => {
+      if (e.button && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const start = normFromEvent(e);
+      const handle = e.target.dataset && e.target.dataset.handle;
+      const onFrame = !handle && !!e.target.closest(".ws-crop-frame") && !!currentCropBox(entry);
+      const orig = Object.assign({ nx: start.x, ny: start.y, nw: 0, nh: 0 }, currentCropBox(entry) || {});
+      pushHistory();
+      overlay.setPointerCapture(e.pointerId);
+
+      function move(ev) {
+        const p = normFromEvent(ev);
+        if (handle) {
+          let x1 = orig.nx;
+          let y1 = orig.ny;
+          let x2 = orig.nx + orig.nw;
+          let y2 = orig.ny + orig.nh;
+          if (handle.indexOf("w") !== -1) x1 = p.x;
+          if (handle.indexOf("e") !== -1) x2 = p.x;
+          if (handle.indexOf("n") !== -1) y1 = p.y;
+          if (handle.indexOf("s") !== -1) y2 = p.y;
+          entry.cropBox = clampCropBox({
+            nx: Math.min(x1, x2),
+            ny: Math.min(y1, y2),
+            nw: Math.abs(x2 - x1),
+            nh: Math.abs(y2 - y1),
+          });
+        } else if (onFrame) {
+          entry.cropBox = clampCropBox({
+            nx: orig.nx + (p.x - start.x),
+            ny: orig.ny + (p.y - start.y),
+            nw: orig.nw,
+            nh: orig.nh,
+          });
+        } else {
+          entry.cropBox = clampCropBox({
+            nx: Math.min(start.x, p.x),
+            ny: Math.min(start.y, p.y),
+            nw: Math.abs(p.x - start.x),
+            nh: Math.abs(p.y - start.y),
+          });
+        }
+        entry.cropN = 0;
+        entry.cropType = "";
+        syncFrame();
+      }
+
+      function up() {
+        overlay.releasePointerCapture(e.pointerId);
+        overlay.removeEventListener("pointermove", move);
+        overlay.removeEventListener("pointerup", up);
+        markSaved();
+      }
+
+      overlay.addEventListener("pointermove", move);
+      overlay.addEventListener("pointerup", up);
+    });
   }
 
   function cropMargins() {

@@ -1305,6 +1305,50 @@ html[data-tool="watermark"] .ws-workspace-head h3 {
   margin-top: 4px;
 }
 
+.ws-crop-page {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  max-height: 100%;
+  line-height: 0;
+}
+.ws-crop-page canvas {
+  display: block;
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+}
+.ws-crop-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  cursor: crosshair;
+}
+.ws-crop-frame {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #5ec8f0;
+  background: transparent;
+  pointer-events: auto;
+  cursor: move;
+}
+.ws-crop-handle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: #fff;
+  border: 2px solid #5ec8f0;
+  box-sizing: border-box;
+}
+.ws-crop-handle-nw { left: -5px; top: -5px; cursor: nwse-resize; }
+.ws-crop-handle-ne { right: -5px; top: -5px; cursor: nesw-resize; }
+.ws-crop-handle-sw { left: -5px; bottom: -5px; cursor: nesw-resize; }
+.ws-crop-handle-se { right: -5px; bottom: -5px; cursor: nwse-resize; }
+html[data-tool="crop"] .ws-page-card {
+  cursor: default;
+}
+
 .ws-info { list-style: none; margin: 0; padding: 0; }
 .ws-info li {
   display: flex;
