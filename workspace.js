@@ -1637,6 +1637,84 @@
     status("Signature placed on page " + (index + 1));
   }
 
+  function cloneSignAnnotation(src) {
+    return {
+      id: annoSeq++,
+      type: "sign",
+      nx: src.nx,
+      ny: src.ny,
+      wN: src.wN,
+      hN: src.hN,
+      dataUrl: src.dataUrl,
+    };
+  }
+
+  function findSourceSignature() {
+    if (state.selAnno && state.selAnno.anno && state.selAnno.anno.type === "sign") {
+      return state.selAnno.anno;
+    }
+    const current = state.pages[state.current];
+    if (current) {
+      const onCurrent = (current.annotations || []).filter((a) => a.type === "sign");
+      if (onCurrent.length) return onCurrent[onCurrent.length - 1];
+    }
+    for (let i = 0; i < state.pages.length; i++) {
+      const signs = (state.pages[i].annotations || []).filter((a) => a.type === "sign");
+      if (signs.length) return signs[signs.length - 1];
+    }
+    return null;
+  }
+
+  async function applySignatureToAllPages() {
+    if (!state.pages.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    const source = findSourceSignature();
+    if (!source) {
+      toast("Place a signature on a page first", true);
+      return;
+    }
+    pushHistory();
+    state.pages.forEach((page) => {
+      const already = (page.annotations || []).some(
+        (a) => a === source || (a.type === "sign" && a.dataUrl === source.dataUrl && a.nx === source.nx && a.ny === source.ny)
+      );
+      if (already) return;
+      page.annotations = page.annotations || [];
+      page.annotations.push(cloneSignAnnotation(source));
+    });
+    await rerender("all");
+    updateMeta();
+    markSaved();
+    toast("Signature applied to all pages");
+    status("Signature applied to all pages");
+  }
+
+  async function removeSignaturesFromAllPages() {
+    if (!state.pages.length) {
+      toast("Add a file first", true);
+      return;
+    }
+    const had = state.pages.some((page) => (page.annotations || []).some((a) => a.type === "sign"));
+    if (!had) {
+      toast("No signatures to remove", true);
+      return;
+    }
+    pushHistory();
+    state.pages.forEach((page) => {
+      page.annotations = (page.annotations || []).filter((a) => a.type !== "sign");
+    });
+    if (state.selAnno && state.selAnno.anno && state.selAnno.anno.type === "sign") {
+      state.selAnno = null;
+    }
+    await rerender("all");
+    updateMeta();
+    markSaved();
+    toast("Signatures removed from all pages");
+    status("Signatures removed from all pages");
+  }
+
   function armPendingSignature(sig) {
     state.pendingSignature = sig;
     state.tool = "sign";
@@ -3245,6 +3323,10 @@
         if (el.signInput) el.signInput.click();
       });
     }
+    const applySignAllBtn = document.getElementById("applySignAllBtn");
+    if (applySignAllBtn) applySignAllBtn.addEventListener("click", applySignatureToAllPages);
+    const removeSignAllBtn = document.getElementById("removeSignAllBtn");
+    if (removeSignAllBtn) removeSignAllBtn.addEventListener("click", removeSignaturesFromAllPages);
     bindWatermarkPanel();
     const pdfWordBtn = document.getElementById("pdfWordBtn");
     if (pdfWordBtn) pdfWordBtn.addEventListener("click", exportPdfAsText);
