@@ -882,13 +882,6 @@
     return ids;
   }
 
-  function selectedFileId() {
-    const ids = selectedFileIds();
-    if (ids.length) return ids[0];
-    const all = orderedFileIds();
-    return all.length ? all[0] : null;
-  }
-
   function makeRemoveBtn(onClick) {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -936,36 +929,8 @@
     updateMeta();
   }
 
-  async function renderFileThumbs() {
-    el.thumbs.innerHTML = "";
-    const ids = orderedFileIds();
-    for (let n = 0; n < ids.length; n++) {
-      const fileId = ids[n];
-      const file = state.sources[fileId];
-      const first = state.pages.findIndex((page) => page.fileId === fileId);
-      if (first < 0) continue;
-      const thumb = document.createElement("div");
-      thumb.className = "ws-thumb";
-      thumb.dataset.fileId = String(fileId);
-      thumb.dataset.index = String(first);
-      thumb.addEventListener("click", (e) => selectFile(fileId, e.shiftKey || e.metaKey || e.ctrlKey));
-      el.thumbs.appendChild(thumb);
-      await renderThumb(first, thumb);
-      const num = thumb.querySelector(".ws-thumb-num");
-      if (num) num.textContent = String(n + 1);
-      const label = document.createElement("span");
-      label.className = "ws-thumb-file";
-      label.textContent = file ? file.name : "PDF";
-      thumb.appendChild(label);
-    }
-  }
-
   async function renderThumbs() {
     el.thumbs.innerHTML = "";
-    if (false && isOrganizeTool()) {
-      await renderFileThumbs();
-      return;
-    }
     for (let i = 0; i < state.pages.length; i++) {
       const thumb = document.createElement("div");
       thumb.className = "ws-thumb";
@@ -1129,15 +1094,6 @@
       });
       bindCardDrag(wrap, String(fileId), (from) => moveFileTo(from, fileId));
       el.pageStack.appendChild(wrap);
-    }
-
-    if (!isFileCardTool()) {
-      const adder = document.createElement("button");
-      adder.type = "button";
-      adder.className = "ws-add-card";
-      adder.innerHTML = "<span>+</span><b>Add PDF</b><em>or drop files here</em>";
-      adder.addEventListener("click", () => el.fileInput.click());
-      el.pageStack.appendChild(adder);
     }
     applySelectionClasses();
     updateAddFab();
@@ -1519,8 +1475,6 @@
       ? n + " page" + (n > 1 ? "s" : "") + " selected"
       : "No page selected";
     el.selectionInfo.textContent = text;
-    const cmd = document.getElementById("cmdStatus");
-    if (cmd) cmd.textContent = n ? n + " selected" : state.pages.length + " pages";
   }
 
   function selectedIndices() {
@@ -3163,8 +3117,6 @@
     if (railLabel) railLabel.textContent = "Pages";
     const pageNav = document.getElementById("pageNavGroup");
     if (pageNav) pageNav.hidden = isOrganizeTool();
-    const commandBar = document.getElementById("commandBar");
-    if (commandBar) commandBar.hidden = true;
     updateActionDock();
 
     const workspace = WORKSPACES[key];
@@ -3228,8 +3180,6 @@
   }
 
   function updateActionDock() {
-    const dock = document.getElementById("actionDock");
-    if (dock) dock.hidden = true;
     const foot = document.getElementById("panelFoot");
     const label = document.getElementById("panelActionLabel");
     const workspace = WORKSPACES[state.selectedTool];
@@ -3515,10 +3465,6 @@
     });
     document.getElementById("undoBtn").addEventListener("click", undo);
     document.getElementById("redoBtn").addEventListener("click", redo);
-    const downloadBtn = document.getElementById("downloadBtn");
-    if (downloadBtn) downloadBtn.addEventListener("click", () => exportPdf());
-    const addMoreBtn = document.getElementById("addMoreBtn");
-    if (addMoreBtn) addMoreBtn.addEventListener("click", () => el.fileInput.click());
     const addFab = document.getElementById("addFab");
     if (addFab) addFab.addEventListener("click", () => el.fileInput.click());
     const panelAction = document.getElementById("panelActionBtn");
@@ -3589,32 +3535,6 @@
       updateSelectionInfo();
       updateMeta();
     });
-
-    const dockAdd = document.getElementById("dockAddBtn");
-    if (dockAdd) dockAdd.addEventListener("click", () => el.fileInput.click());
-    const primaryAction = document.getElementById("primaryActionBtn");
-    if (primaryAction) primaryAction.addEventListener("click", () => runPrimaryAction());
-
-    const cmdAdd = document.getElementById("cmdAdd");
-    if (cmdAdd) cmdAdd.addEventListener("click", () => el.fileInput.click());
-    const cmdSelectAll = document.getElementById("cmdSelectAll");
-    if (cmdSelectAll) cmdSelectAll.addEventListener("click", () => {
-      if (!state.pages.length) return;
-      state.selected = new Set(state.pages.map((_, i) => i));
-      applySelectionClasses();
-      updateSelectionInfo();
-      updateMeta();
-    });
-    const cmdDeselect = document.getElementById("cmdDeselect");
-    if (cmdDeselect) cmdDeselect.addEventListener("click", () => {
-      state.selected.clear();
-      applySelectionClasses();
-      updateSelectionInfo();
-    });
-    const cmdRotateAll = document.getElementById("cmdRotateAll");
-    if (cmdRotateAll) cmdRotateAll.addEventListener("click", () => rotateAllPages(90));
-    const cmdDelete = document.getElementById("cmdDelete");
-    if (cmdDelete) cmdDelete.addEventListener("click", deleteSelection);
 
     const zoomSlider = document.getElementById("zoomSlider");
     if (zoomSlider) {

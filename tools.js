@@ -71,7 +71,6 @@ window.DM_TOOLS = {
     accept: "application/pdf",
     hint: "PDF files (select 2 or more)",
     workspace: "merge",
-    minFiles: 2,
   },
   split: {
     title: "Split PDF",

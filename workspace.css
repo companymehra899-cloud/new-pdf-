@@ -97,10 +97,6 @@ svg { display: block; }
 .ws-page-indicator input:focus { border-color: var(--ws-teal); }
 
 .ws-topbar-right { display: flex; align-items: center; gap: 10px; }
-#addMoreBtn,
-#downloadBtn {
-  display: none !important;
-}
 .ws-saved {
   font-size: 12.5px;
   font-weight: 700;
@@ -618,12 +614,6 @@ html[data-layout="cards"] .ws-page {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.ws-add-card,
-.ws-add-card span,
-.ws-add-card b,
-.ws-add-card em {
-  display: none !important;
-}
 .ws-card-remove {
   position: absolute;
   top: 6px;
@@ -640,37 +630,6 @@ html[data-layout="cards"] .ws-page {
 }
 .ws-card-remove svg { width: 12px; height: 12px; }
 .ws-card-remove:hover { background: #d6455f; }
-.ws-command {
-  display: none;
-}
-.ws-command[hidden] { display: none; }
-.ws-cmd {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 10px;
-  background: #f4f8fb;
-  border: 1px solid var(--ws-line);
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #35525f;
-  white-space: nowrap;
-  transition: background .16s, color .16s, border-color .16s, transform .16s;
-}
-.ws-cmd svg { width: 15px; height: 15px; }
-.ws-cmd:hover { background: #e4f3fb; color: var(--ws-teal-dark); border-color: #a8dcef; }
-.ws-cmd:active { transform: translateY(1px); }
-.ws-cmd.is-danger { color: #d6455f; }
-.ws-cmd.is-danger:hover { background: #fdeef1; border-color: #f8c9d4; }
-.ws-cmd-status {
-  margin-left: auto;
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #7a8fa0;
-  white-space: nowrap;
-}
 .ws-thumb-card {
   background: transparent;
   border: none;
@@ -788,10 +747,6 @@ html[data-layout="cards"] .ws-page {
   color: #fff;
   font-weight: 800;
 }
-.ws-action-dock {
-  display: none;
-}
-.ws-action-dock[hidden] { display: none; }
 html[data-layout="cards"] .ws-toolgroup#pageNavGroup { display: none; }
 .ws-thumb-file {
   display: block;
@@ -970,9 +925,6 @@ html[data-tool] #workspaceHint {
   border-left-color: #374151;
 }
 .ws-add-fab:hover .ws-add-fab-tip { opacity: 1; }
-.ws-add-card {
-  display: none !important;
-}
 .ws-workspace-head {
   padding: 16px 16px 4px;
   flex-shrink: 0;
@@ -1033,7 +985,6 @@ html[data-tool="convert"] .ws-panel-block[data-scope="jpg-pdf"],
 html[data-tool="pdf-jpg"] .ws-panel-block[data-scope="pdf-jpg"],
 html[data-tool="jpg-pdf"] .ws-panel-block[data-scope="jpg-pdf"],
 html[data-tool="pdf-word"] .ws-panel-block[data-scope="pdf-word"],
-html[data-tool="word-pdf"] .ws-panel-block[data-scope="word-pdf"],
 html[data-tool="html-pdf"] .ws-panel-block[data-scope="html-pdf"],
 html[data-tool="unlock"] .ws-panel-block[data-scope="unlock"],
 html[data-tool="organize"] .ws-panel-block[data-scope="arrange"],
