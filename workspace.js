@@ -96,14 +96,19 @@
   }
 
   function download(blob, filename) {
-    const url = URL.createObjectURL(blob);
+    const file = new Blob([blob], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(file);
     const a = document.createElement("a");
+    a.style.display = "none";
     a.href = url;
-    a.download = filename;
+    a.setAttribute("download", filename || "document.pdf");
+    a.rel = "noopener";
     document.body.appendChild(a);
     a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 5000);
+    setTimeout(() => {
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, 2500);
   }
 
   function bytesFromDataUrl(dataUrl) {
@@ -3271,7 +3276,7 @@
       done = await exportPdf({ suffix: "-cropped" });
     }
     else done = await exportPdf();
-    if (done) setTimeout(() => window.location.reload(), 400);
+    return done;
   }
 
   function watermarkPositions() {
