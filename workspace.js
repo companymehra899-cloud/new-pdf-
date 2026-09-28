@@ -96,15 +96,22 @@
   }
 
   function download(blob, filename) {
-    const file = new Blob([blob], { type: "application/octet-stream" });
-    const url = URL.createObjectURL(file);
+    filename = filename || "document.pdf";
+    const file = blob instanceof Blob ? blob : new Blob([blob]);
+    const named = new Blob([file], { type: "application/octet-stream" });
+    if (window.navigator && typeof window.navigator.msSaveOrOpenBlob === "function") {
+      window.navigator.msSaveOrOpenBlob(named, filename);
+      return;
+    }
+    const url = URL.createObjectURL(named);
     const a = document.createElement("a");
     a.style.display = "none";
     a.href = url;
-    a.setAttribute("download", filename || "document.pdf");
+    a.download = filename;
+    a.setAttribute("download", filename);
     a.rel = "noopener";
     document.body.appendChild(a);
-    a.click();
+    a.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
     setTimeout(() => {
       a.remove();
       URL.revokeObjectURL(url);
@@ -3109,27 +3116,27 @@
 
   const WORKSPACES = {
     edit: { title: "Edit PDF", hint: "Click text on the page to edit it, or add text and shapes.", chips: [], page: [], file: ["edit", "info", "files"], tab: "file", mode: "select", action: "Download PDF" },
-    watermark: { title: "Watermark options", hint: "Choose text or image, then add it to every page.", chips: [], page: [], file: ["watermark"], tab: "file", action: "Add watermark" },
-    image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image" },
+    watermark: { title: "Watermark options", hint: "Choose text or image, then add it to every page.", chips: [], page: [], file: ["watermark"], tab: "file", action: "Download PDF" },
+    image: { title: "Add Images", hint: "Place photos or graphics onto the PDF.", chips: ["image", "erase"], page: [], file: ["image", "info", "files"], tab: "file", mode: "image", action: "Download PDF" },
     sign: { title: "Sign Document", hint: "Upload a PDF or JPG, then drag a signature onto any page.", chips: ["sign", "erase"], page: [], file: ["sign", "info", "files"], tab: "file", mode: "sign", action: "Download PDF" },
-    rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: [], tab: "page", action: "Rotate PDF" },
-    split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: [], tab: "page", action: "Split PDF" },
-    merge: { title: "Merge PDF", hint: "To change the order of your PDFs, drag and drop the files as you want.", chips: [], page: [], file: [], tab: "file", action: "Merge PDF" },
-    compress: { title: "Compress PDF", hint: "Pick High, Medium or Low, then compress the PDF.", chips: [], page: [], file: ["compress"], tab: "file", action: "Compress PDF" },
-    protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
-    convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
-    "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file" },
-    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["pdf-word", "info", "files"], tab: "file" },
+    rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: [], tab: "page", action: "Download PDF" },
+    split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: [], tab: "page", action: "Download PDF" },
+    merge: { title: "Merge PDF", hint: "To change the order of your PDFs, drag and drop the files as you want.", chips: [], page: [], file: [], tab: "file", action: "Download PDF" },
+    compress: { title: "Compress PDF", hint: "Pick High, Medium or Low, then compress the PDF.", chips: [], page: [], file: ["compress"], tab: "file", action: "Download PDF" },
+    protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file", action: "Download PDF" },
+    convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file", action: "Download PDF" },
+    "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file", action: "Download PDF" },
+    "jpg-pdf": { title: "JPG to PDF", hint: "Turn images in this workspace into one PDF.", chips: [], page: [], file: ["jpg-pdf", "info", "files"], tab: "file", action: "Download PDF" },
+    "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["pdf-word", "info", "files"], tab: "file", action: "Download PDF" },
     "html-pdf": { title: "HTML to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["html-pdf", "info", "files"], tab: "file", action: "Download PDF" },
-    unlock: { title: "Unlock PDF", hint: "Download a copy without the password if the file opened.", chips: [], page: [], file: [], tab: "file", action: "Unlock PDF" },
+    unlock: { title: "Unlock PDF", hint: "Download a copy without the password if the file opened.", chips: [], page: [], file: [], tab: "file", action: "Download PDF" },
     organize: { title: "Organize PDF", hint: "Each upload stays one PDF. Drag files to reorder, or delete a whole file.", chips: [], page: ["arrange", "delete"], file: [], tab: "page", action: "Download PDF" },
-    extract: { title: "Extract pages", hint: "Select pages, then extract them into a new PDF.", chips: [], page: ["extract"], file: [], tab: "page", action: "Extract PDF" },
-    remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: [], tab: "page", action: "Remove pages" },
-    repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: [], tab: "file", action: "Repair PDF" },
+    extract: { title: "Extract pages", hint: "Select pages, then extract them into a new PDF.", chips: [], page: ["extract"], file: [], tab: "page", action: "Download PDF" },
+    remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: [], tab: "page", action: "Download PDF" },
+    repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: [], tab: "file", action: "Download PDF" },
     pagenumbers: { title: "Page numbers", hint: "Stamp a page number on every page.", chips: [], page: [], file: ["pagenumbers", "info", "files"], tab: "file", action: "Download PDF" },
-    crop: { title: "Crop PDF", hint: "Trim equal margins, or pick a crop type to resize every page.", chips: [], page: ["crop"], file: [], tab: "page", action: "Crop PDF" },
-    redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image" },
+    crop: { title: "Crop PDF", hint: "Trim equal margins, or pick a crop type to resize every page.", chips: [], page: ["crop"], file: [], tab: "page", action: "Download PDF" },
+    redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image", action: "Download PDF" },
   };
 
   function readStoredTool() {
@@ -3252,15 +3259,25 @@
 
   async function runPrimaryAction() {
     const tool = state.selectedTool;
-    let done;
-    if (tool === "merge") done = await exportPdf({ suffix: "-merged" });
-    else if (tool === "compress") done = await compressAndDownload();
-    else if (tool === "split") done = await splitAfterSelection();
-    else if (tool === "rotate") done = await exportPdf({ suffix: "-rotated" });
-    else if (tool === "watermark") done = await applyWatermarkAndExport();
-    else if (tool === "remove") done = await exportWithoutMarkedPages();
-    else if (tool === "extract") done = await extractSelection();
-    else if (tool === "crop") {
+    if (tool === "merge") return exportPdf({ suffix: "-merged" });
+    if (tool === "compress") return compressAndDownload();
+    if (tool === "split") return splitAfterSelection();
+    if (tool === "rotate") return exportPdf({ suffix: "-rotated" });
+    if (tool === "watermark") return applyWatermarkAndExport();
+    if (tool === "remove") return exportWithoutMarkedPages();
+    if (tool === "extract") return extractSelection();
+    if (tool === "protect") {
+      openProtectModal();
+      return;
+    }
+    if (tool === "pdf-word") return exportPdfAsText();
+    if (tool === "pdf-jpg" || tool === "convert") {
+      openConvertImagesModal();
+      return;
+    }
+    if (tool === "unlock") return exportPdf({ suffix: "-unlocked" });
+    if (tool === "repair") return exportPdf({ suffix: "-repaired" });
+    if (tool === "crop") {
       const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
       if (targets.length) {
         const typeEl = document.getElementById("cropType");
@@ -3273,10 +3290,9 @@
           });
         }
       }
-      done = await exportPdf({ suffix: "-cropped" });
+      return exportPdf({ suffix: "-cropped" });
     }
-    else done = await exportPdf();
-    return done;
+    return exportPdf();
   }
 
   function watermarkPositions() {
