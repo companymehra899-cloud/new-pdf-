@@ -852,11 +852,11 @@
   }
 
   function isFileCardTool() {
-    return ["merge", "compress", "repair", "unlock"].indexOf(state.selectedTool) !== -1;
+    return ["merge", "compress", "repair", "unlock", "organize"].indexOf(state.selectedTool) !== -1;
   }
 
   function isPageCardTool() {
-    return ["split", "remove", "extract", "organize", "rotate", "crop"].indexOf(state.selectedTool) !== -1;
+    return ["split", "remove", "extract", "rotate", "crop"].indexOf(state.selectedTool) !== -1;
   }
 
   function isEditTool() {
@@ -3077,7 +3077,7 @@
     "pdf-word": { title: "PDF to Word", hint: "Download a Word-friendly text document.", chips: [], page: [], file: ["pdf-word", "info", "files"], tab: "file" },
     "html-pdf": { title: "HTML to PDF", hint: "Download the converted PDF.", chips: [], page: [], file: ["html-pdf", "info", "files"], tab: "file", action: "Download PDF" },
     unlock: { title: "Unlock PDF", hint: "Download a copy without the password if the file opened.", chips: [], page: [], file: [], tab: "file", action: "Unlock PDF" },
-    organize: { title: "Organize PDF", hint: "Sort, delete or rearrange pages.", chips: [], page: ["arrange", "delete"], file: [], tab: "page", action: "Download PDF" },
+    organize: { title: "Organize PDF", hint: "Each upload stays one PDF. Drag files to reorder, or delete a whole file.", chips: [], page: ["arrange", "delete"], file: [], tab: "page", action: "Download PDF" },
     extract: { title: "Extract pages", hint: "Select pages, then extract them into a new PDF.", chips: [], page: ["extract"], file: [], tab: "page", action: "Extract PDF" },
     remove: { title: "Remove pages", hint: "Select pages, then delete them from the PDF.", chips: [], page: ["delete"], file: [], tab: "page", action: "Remove pages" },
     repair: { title: "Repair PDF", hint: "Rebuild readable pages into a new file.", chips: [], page: [], file: [], tab: "file", action: "Repair PDF" },
