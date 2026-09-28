@@ -836,6 +836,9 @@ html[data-tool="repair"] .ws-panel-block,
 html[data-tool="unlock"] .ws-panel-block {
   display: none !important;
 }
+html[data-tool="compress"] .ws-panel-block[data-scope="compress"] {
+  display: block !important;
+}
 html[data-tool="merge"] .ws-panel-block[data-scope="merge"],
 html[data-tool="merge"] .ws-panel-block[data-scope="arrange"] {
   display: none;
@@ -1065,6 +1068,12 @@ html[data-tool] .ws-tab-body[data-body="file"] {
 .ws-list-btn:hover { background: #fde8e7; color: var(--ws-teal-dark); border-color: #f3b6b3; }
 .ws-list-btn.is-danger { color: #d6455f; }
 .ws-list-btn.is-danger:hover { background: #fdeef1; border-color: #f8c9d4; color: #c02f49; }
+.ws-compress-level.is-active {
+  background: #fde8e7;
+  color: var(--ws-teal-dark);
+  border-color: #f3b6b3;
+  box-shadow: inset 3px 0 0 var(--ws-teal);
+}
 
 html[data-tool="watermark"] .ws-tabs,
 html[data-tool="watermark"] #workspaceHint {

@@ -24,6 +24,7 @@
     selAnno: null,
     history: [],
     future: [],
+    compressLevel: "medium",
   };
 
   const el = {
@@ -297,7 +298,35 @@
     return await doc.save();
   }
 
+  async function loadCompressPdf(file, setPct) {
+    const url = URL.createObjectURL(file);
+    if (setPct) setPct(0.2);
+    const pdfJsDoc = await pdfjsLib.getDocument({
+      url: url,
+      disableAutoFetch: true,
+      disableStream: false,
+    }).promise;
+    if (setPct) setPct(0.7);
+    const fileId = state.sources.length;
+    state.sources.push({ name: file.name, size: file.size, pdf: pdfJsDoc, lib: null, objectUrl: url });
+    const pageCount = pdfJsDoc.numPages || 0;
+    for (let i = 0; i < pageCount; i++) {
+      state.pages.push({
+        fileId,
+        sourceIndex: i,
+        srcRotation: 0,
+        rotation: 0,
+        annotations: [],
+      });
+    }
+    if (setPct) setPct(1);
+    return fileId;
+  }
+
   async function loadSource(file) {
+    if (state.selectedTool === "compress" && isPdfFile(file)) {
+      return loadCompressPdf(file);
+    }
     let bytes;
     let name = file.name;
     let size = file.size;
@@ -347,7 +376,11 @@
     let added = 0;
     for (const file of usable) {
       try {
-        await loadSource(file);
+        if (state.selectedTool === "compress" && isPdfFile(file)) {
+          await withProgress("Opening PDF...", (setPct) => loadCompressPdf(file, setPct));
+        } else {
+          await loadSource(file);
+        }
         added++;
       } catch (err) {
         console.error(err);
@@ -771,6 +804,9 @@
     scale = Math.max(0.05, scale);
     const src = state.sources[entry.fileId];
     const pj = await src.pdf.getPage(entry.sourceIndex + 1);
+    if (!entry.srcRotation) {
+      entry.srcRotation = ((((pj.rotate || 0) % 360) + 360) % 360);
+    }
     const viewport = pj.getViewport({ scale: scale, rotation: totalRotation(entry) });
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
@@ -1054,10 +1090,15 @@
       const cover = document.createElement("div");
       cover.className = "ws-card-cover";
       if (firstPage) {
-        const canvas = await renderPageCanvas(firstPage, 0.42);
-        canvas.style.width = "100%";
-        canvas.style.height = "auto";
-        cover.appendChild(canvas);
+        try {
+          const canvas = await renderPageCanvas(firstPage, file.size > 40 * 1024 * 1024 ? 0.22 : 0.42);
+          canvas.style.width = "100%";
+          canvas.style.height = "auto";
+          cover.appendChild(canvas);
+        } catch (err) {
+          console.error(err);
+          cover.textContent = "PDF";
+        }
       }
       sheet.appendChild(cover);
 
@@ -1423,7 +1464,8 @@
 
   async function rerender(pageRefs) {
     if (pageRefs === "all" || !pageRefs) {
-      await renderThumbs();
+      if (state.selectedTool === "compress") el.thumbs.innerHTML = "";
+      else await renderThumbs();
       await renderStack();
     } else {
       const indices = new Set(pageRefs);
@@ -2529,6 +2571,9 @@
   async function renderPageToJpeg(entry, maxEdge, quality) {
     const src = state.sources[entry.fileId];
     const pj = await src.pdf.getPage(entry.sourceIndex + 1);
+    if (!entry.srcRotation) {
+      entry.srcRotation = ((((pj.rotate || 0) % 360) + 360) % 360);
+    }
     const base = pj.getViewport({ scale: 1, rotation: totalRotation(entry) });
     const longEdge = Math.max(base.width, base.height);
     const scale = Math.min(1, maxEdge / Math.max(1, longEdge));
@@ -2556,8 +2601,22 @@
       const image = await out.embedJpg(jpeg.bytes);
       const page = out.addPage([jpeg.width, jpeg.height]);
       page.drawImage(image, { x: 0, y: 0, width: jpeg.width, height: jpeg.height });
+      if (k % 2 === 1) await new Promise((resolve) => setTimeout(resolve, 0));
     }
     return out.save({ useObjectStreams: true, addDefaultPage: false });
+  }
+
+  function compressPreset(level) {
+    if (level === "high") return { maxEdge: 720, quality: 0.28 };
+    if (level === "low") return { maxEdge: 1600, quality: 0.72 };
+    return { maxEdge: 1100, quality: 0.48 };
+  }
+
+  function setCompressLevel(level) {
+    state.compressLevel = level === "high" || level === "low" ? level : "medium";
+    document.querySelectorAll(".ws-compress-level").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.compress === state.compressLevel);
+    });
   }
 
   async function compressAndDownload() {
@@ -2571,37 +2630,19 @@
       return;
     }
     const original = totalSourceSize();
-    const pageCount = Math.max(1, indices.length);
-    const targetLow = original >= 80 * 1024 * 1024 ? 12 * 1024 * 1024 : Math.max(original * 0.14, 1.2 * 1024 * 1024);
-    const targetHigh = original >= 80 * 1024 * 1024 ? 18 * 1024 * 1024 : Math.max(original * 0.22, 1.8 * 1024 * 1024);
-    const bytesPerPage = targetHigh / pageCount;
-    let maxEdge = bytesPerPage > 180 * 1024 ? 1100 : bytesPerPage > 90 * 1024 ? 900 : 720;
-    let quality = bytesPerPage > 180 * 1024 ? 0.52 : 0.42;
-    const attempts = [
-      { maxEdge: maxEdge, quality: quality },
-      { maxEdge: Math.round(maxEdge * 0.82), quality: Math.max(0.28, quality - 0.12) },
-      { maxEdge: Math.round(maxEdge * 0.68), quality: Math.max(0.22, quality - 0.2) },
-    ];
-
-    let best = null;
+    const preset = compressPreset(state.compressLevel);
+    let bytes;
     try {
-      for (let i = 0; i < attempts.length; i++) {
-        const attempt = attempts[i];
-        const bytes = await withProgress(
-          i === 0 ? "Compressing PDF..." : "Recompressing for smaller size...",
-          (setPct) => buildCompressedPdf(indices, attempt.maxEdge, attempt.quality, (d, t) => setPct(d / t))
-        );
-        best = bytes;
-        if (bytes.length <= targetHigh) break;
-        if (bytes.length <= targetLow * 1.35 && i === 0) break;
-      }
+      bytes = await withProgress("Compressing PDF...", (setPct) =>
+        buildCompressedPdf(indices, preset.maxEdge, preset.quality, (done, total) => setPct(done / total))
+      );
     } catch (err) {
       console.error(err);
       toast("Compression failed: " + err.message, true);
       return;
     }
 
-    const blob = new Blob([best], { type: "application/pdf" });
+    const blob = new Blob([bytes], { type: "application/pdf" });
     download(blob, baseName(el.fileName.value) + "-compressed.pdf");
     const diff = original - blob.size;
     if (diff > 0) {
@@ -3069,7 +3110,7 @@
     rotate: { title: "Rotate PDF", hint: "Drag pages to reorder, hover to rotate, then download.", chips: [], page: ["rotate"], file: [], tab: "page", action: "Rotate PDF" },
     split: { title: "Split PDF", hint: "Select a page, then split the document after that page.", chips: [], page: ["split"], file: [], tab: "page", action: "Split PDF" },
     merge: { title: "Merge PDF", hint: "To change the order of your PDFs, drag and drop the files as you want.", chips: [], page: [], file: [], tab: "file", action: "Merge PDF" },
-    compress: { title: "Compress PDF", hint: "Review files, then compress and download.", chips: [], page: [], file: [], tab: "file", action: "Compress PDF" },
+    compress: { title: "Compress PDF", hint: "Pick High, Medium or Low, then compress the PDF.", chips: [], page: [], file: ["compress"], tab: "file", action: "Compress PDF" },
     protect: { title: "Protect PDF", hint: "Encrypt with AES-256 and set an open password.", chips: [], page: [], file: ["protect", "info", "files"], tab: "file" },
     convert: { title: "Convert PDF", hint: "Export pages as images, or turn images into a PDF.", chips: [], page: [], file: ["pdf-jpg", "jpg-pdf", "info", "files"], tab: "file" },
     "pdf-jpg": { title: "PDF to JPG", hint: "Export each page as a JPG or PNG image.", chips: [], page: [], file: ["pdf-jpg", "info", "files"], tab: "file" },
@@ -3485,6 +3526,10 @@
 
     document.getElementById("mergeBtn").addEventListener("click", () => exportPdf({ suffix: "-merged" }));
     document.getElementById("compressBtn").addEventListener("click", compressAndDownload);
+    document.querySelectorAll(".ws-compress-level").forEach((btn) => {
+      btn.addEventListener("click", () => setCompressLevel(btn.dataset.compress));
+    });
+    setCompressLevel(state.compressLevel);
     document.getElementById("protectBtn").addEventListener("click", openProtectModal);
     document.getElementById("convertImagesBtn").addEventListener("click", openConvertImagesModal);
     document.getElementById("convertPdfBtn").addEventListener("click", openImagesToPdf);
@@ -3719,7 +3764,11 @@
       for (const entry of pending.files) {
         const file = new File([entry.data], entry.name, { type: entry.type });
         try {
-          await loadSource(file);
+          if (state.selectedTool === "compress" && isPdfFile(file)) {
+            await withProgress("Opening PDF...", (setPct) => loadCompressPdf(file, setPct));
+          } else {
+            await loadSource(file);
+          }
         } catch (err) {
           console.error(err);
           toast("Could not open " + entry.name, true);
