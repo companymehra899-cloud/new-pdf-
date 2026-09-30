@@ -133,7 +133,7 @@ svg { display: block; }
 .ws-layout {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) 400px;
   min-height: 0;
 }
 
@@ -811,18 +811,18 @@ html[data-layout="cards"] .ws-empty {
 }
 .ws-panel-foot {
   margin-top: auto;
-  padding: 18px 16px 20px;
+  padding: 22px 20px 24px;
   flex-shrink: 0;
   background: #fff;
 }
 .ws-panel-foot[hidden] { display: none; }
 .ws-panel-action {
   width: 100%;
-  height: 56px;
+  height: 62px;
   border-radius: 12px;
   background: #e5322d;
   color: #fff;
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -852,11 +852,11 @@ html[data-tool] .ws-note {
 html[data-tool] #workspaceHint {
   display: block;
   margin: 12px 0 0;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border-radius: 10px;
   background: #e8f4fd;
   color: #1d4f7a;
-  font-size: 13.5px;
+  font-size: 14.5px;
   font-weight: 600;
   line-height: 1.45;
 }
@@ -922,12 +922,12 @@ html[data-tool] #workspaceHint {
 }
 .ws-add-fab:hover .ws-add-fab-tip { opacity: 1; }
 .ws-workspace-head {
-  padding: 16px 16px 4px;
+  padding: 20px 20px 6px;
   flex-shrink: 0;
 }
 .ws-workspace-head h3 {
   margin: 0;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--ws-ink);
   text-align: center;
@@ -957,7 +957,7 @@ html[data-tool]:not([data-tool=""]) .ws-tabs {
 .ws-tab:hover { color: var(--ws-teal-dark); }
 .ws-tab.is-active { color: var(--ws-ink); border-bottom-color: var(--ws-teal); background: #fff8f8; }
 .ws-tab[hidden] { display: none !important; }
-.ws-tab-body { display: none; overflow-y: auto; padding: 16px 16px 28px; flex: 1; }
+.ws-tab-body { display: none; overflow-y: auto; padding: 20px 20px 32px; flex: 1; }
 .ws-tab-body.is-active { display: block; }
 .ws-tab-body[hidden] { display: none !important; }
 
@@ -1045,11 +1045,11 @@ html[data-tool] .ws-tab-body[data-body="file"] {
   display: block;
 }
 .ws-panel-block h4 {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: .5px;
   text-transform: uppercase;
   color: #7a8fa0;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
 .ws-btn-row { display: flex; gap: 8px; }
 .ws-square {
@@ -1069,9 +1069,9 @@ html[data-tool] .ws-tab-body[data-body="file"] {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 11px 12px;
+  padding: 13px 14px;
   border-radius: 11px;
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 800;
   color: #35525f;
   background: #f7fafc;
@@ -1329,7 +1329,7 @@ html[data-tool="crop"] .ws-page-card {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 700;
   color: #35525f;
   padding: 7px 0;
@@ -1586,8 +1586,8 @@ html[data-tool="crop"] .ws-page-card {
 
 .ws-field {
   display: block;
-  margin-bottom: 13px;
-  font-size: 12.5px;
+  margin-bottom: 15px;
+  font-size: 13.5px;
   font-weight: 800;
   color: #7a8fa0;
   letter-spacing: .4px;
@@ -1598,8 +1598,8 @@ html[data-tool="crop"] .ws-page-card {
   border: 1px solid var(--ws-line);
   background: #f8fbfd;
   border-radius: 11px;
-  padding: 11px 13px;
-  font-size: 14.5px;
+  padding: 13px 15px;
+  font-size: 16px;
   font-weight: 700;
   color: var(--ws-ink);
   outline: none;
@@ -1632,7 +1632,7 @@ html[data-tool="crop"] .ws-page-card {
   display: flex;
   align-items: center;
   gap: 9px;
-  font-size: 13.5px;
+  font-size: 15px;
   font-weight: 700;
   color: #35525f;
   padding: 7px 0;
@@ -1727,7 +1727,7 @@ html[data-tool="crop"] .ws-page-card {
 }
 
 @media (max-width: 1100px) {
-  .ws-layout { grid-template-columns: minmax(0, 1fr) 236px; }
+  .ws-layout { grid-template-columns: minmax(0, 1fr) 300px; }
   .ws-file input { width: 150px; }
   .ws-saved { display: none; }
 }
