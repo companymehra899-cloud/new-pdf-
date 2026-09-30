@@ -2749,8 +2749,11 @@
     const h = src.height || src.image.height;
     const rw = document.getElementById("imgResizeW");
     const rh = document.getElementById("imgResizeH");
-    if (rw && !rw.dataset.touched) rw.value = String(w);
-    if (rh && !rh.dataset.touched) rh.value = String(h);
+    const rUnit = (document.getElementById("imgResizeUnit") || {}).value || "px";
+    const rDpiEl = document.getElementById("imgResizeDpi");
+    const rDpi = Math.max(36, parseFloat(rDpiEl && rDpiEl.value) || 96);
+    if (rw && !rw.dataset.touched) rw.value = String(pxToUnit(w, rUnit, rDpi));
+    if (rh && !rh.dataset.touched) rh.value = String(pxToUnit(h, rUnit, rDpi));
     const unit = (document.getElementById("imgDimUnit") || {}).value || "px";
     const dpiEl = document.getElementById("imgDimDpi");
     const dpi = Math.max(36, parseFloat(dpiEl && dpiEl.value) || 96);
@@ -2810,13 +2813,15 @@
       toast("Add an image first", true);
       return;
     }
-    const w = Math.max(1, parseInt((document.getElementById("imgResizeW") || {}).value, 10) || src.width);
-    const h = Math.max(1, parseInt((document.getElementById("imgResizeH") || {}).value, 10) || src.height);
+    const unit = (document.getElementById("imgResizeUnit") || {}).value || "px";
+    const dpi = Math.max(36, parseFloat((document.getElementById("imgResizeDpi") || {}).value) || 96);
+    const w = unitToPx((document.getElementById("imgResizeW") || {}).value, unit, dpi);
+    const h = unitToPx((document.getElementById("imgResizeH") || {}).value, unit, dpi);
     const canvas = drawImageToSize(src, w, h);
     const blob = await encodeImageCanvas(canvas, src, 0.92);
     const ext = src.mime === "image/png" ? ".png" : ".jpg";
     download(blob, baseName(src.name) + "-" + w + "x" + h + ext);
-    toast("Downloaded " + w + " x " + h + " image");
+    toast("Downloaded " + w + " x " + h + " px");
     return true;
   }
 
@@ -2869,12 +2874,20 @@
     const rw = document.getElementById("imgResizeW");
     const rh = document.getElementById("imgResizeH");
     const rlock = document.getElementById("imgResizeLock");
+    const rUnitEl = document.getElementById("imgResizeUnit");
     function syncResize(fromW) {
       const src = currentImageSource();
       if (!src || !rw || !rh || !(rlock && rlock.checked)) return;
+      const dpi = Math.max(36, parseFloat((document.getElementById("imgResizeDpi") || {}).value) || 96);
+      const unit = (rUnitEl && rUnitEl.value) || "px";
       const ratio = src.width / Math.max(1, src.height);
-      if (fromW) rh.value = String(Math.max(1, Math.round(parseFloat(rw.value) / ratio)));
-      else rw.value = String(Math.max(1, Math.round(parseFloat(rh.value) * ratio)));
+      if (fromW) {
+        const wPx = unitToPx(rw.value, unit, dpi);
+        rh.value = String(pxToUnit(wPx / ratio, unit, dpi));
+      } else {
+        const hPx = unitToPx(rh.value, unit, dpi);
+        rw.value = String(pxToUnit(hPx * ratio, unit, dpi));
+      }
     }
     if (rw) {
       rw.addEventListener("input", () => { rw.dataset.touched = "1"; syncResize(true); });
@@ -2882,6 +2895,19 @@
     if (rh) {
       rh.addEventListener("input", () => { rh.dataset.touched = "1"; syncResize(false); });
     }
+    if (rUnitEl) rUnitEl.addEventListener("change", () => {
+      const src = currentImageSource();
+      if (rw) rw.dataset.touched = "";
+      if (rh) rh.dataset.touched = "";
+      fillImageFields(src);
+    });
+    const rDpiEl = document.getElementById("imgResizeDpi");
+    if (rDpiEl) rDpiEl.addEventListener("change", () => {
+      const src = currentImageSource();
+      if (rw) rw.dataset.touched = "";
+      if (rh) rh.dataset.touched = "";
+      fillImageFields(src);
+    });
     const dw = document.getElementById("imgDimW");
     const dh = document.getElementById("imgDimH");
     const dlock = document.getElementById("imgDimLock");
@@ -3393,7 +3419,7 @@
     pagenumbers: { title: "Page numbers", hint: "Stamp a page number on every page.", chips: [], page: [], file: ["pagenumbers", "info", "files"], tab: "file", action: "Download PDF" },
     crop: { title: "Crop PDF", hint: "Trim equal margins, or pick a crop type to resize every page.", chips: [], page: ["crop"], file: [], tab: "page", action: "Download PDF" },
     redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image", action: "Download PDF" },
-    "resize-image": { title: "Resize image", hint: "Set a new width and height, then download.", chips: [], page: [], file: ["resize-image"], tab: "file", action: "Download image" },
+    "resize-image": { title: "Resize image", hint: "Set width and height in px, inch, cm or mm.", chips: [], page: [], file: ["resize-image"], tab: "file", action: "Download image" },
     "compress-image": { title: "Compress image", hint: "Set a target size in KB, then compress.", chips: [], page: [], file: ["compress-image"], tab: "file", action: "Download image" },
     "image-dimensions": { title: "Image dimensions", hint: "Change size in px, inch, cm or mm.", chips: [], page: [], file: ["image-dimensions"], tab: "file", action: "Download image" },
   };

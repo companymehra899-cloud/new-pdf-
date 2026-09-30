@@ -202,7 +202,7 @@ window.DM_TOOLS = {
     title: "Resize image",
     heading: "Resize image",
     kicker: "Image",
-    desc: "Change image width and height, then download the new file.",
+    desc: "Change image size in px, inch, cm or mm, then download.",
     accept: "image/png,image/jpeg",
     hint: "JPG or PNG images",
     workspace: "resize-image",
