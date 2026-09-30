@@ -28,6 +28,11 @@
   const fileInput = document.getElementById("fileInput");
   const chooseBtn = document.getElementById("chooseFile");
   const fileListEl = document.getElementById("fileList");
+  const imageTool = /^image\//.test(String(tool.accept || ""));
+  const chooseLabel = imageTool ? "Select image files" : "Select PDF files";
+  const dropTitle = document.querySelector(".dropzone-copy h2");
+  if (dropTitle) dropTitle.textContent = chooseLabel;
+  if (chooseBtn) chooseBtn.textContent = chooseLabel;
 
   if (fileInput) fileInput.accept = tool.accept || "application/pdf";
   let selectedFiles = [];

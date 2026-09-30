@@ -75,7 +75,7 @@ img, svg { display: block; max-width: 100%; }
 .dropdown.mega {
   display: flex;
   gap: 8px;
-  min-width: 720px;
+  min-width: 840px;
   padding: 18px 16px;
 }
 .mega-col { min-width: 130px; padding: 0 8px; }

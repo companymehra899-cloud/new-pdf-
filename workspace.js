@@ -151,6 +151,46 @@
     return /text\/(html|plain)/i.test(file.type) || /\.(html?|txt)$/i.test(file.name);
   }
 
+  function loadImageElement(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Could not read image"));
+      };
+      img.src = url;
+    });
+  }
+
+  async function loadImageSource(file) {
+    const img = await loadImageElement(file);
+    const fileId = state.sources.length;
+    state.sources.push({
+      name: file.name,
+      size: file.size,
+      pdf: null,
+      lib: null,
+      kind: "image",
+      image: img,
+      width: img.naturalWidth || img.width,
+      height: img.naturalHeight || img.height,
+      mime: file.type || (/\.png$/i.test(file.name) ? "image/png" : "image/jpeg"),
+    });
+    state.pages.push({
+      fileId,
+      sourceIndex: 0,
+      srcRotation: 0,
+      rotation: 0,
+      annotations: [],
+    });
+    return fileId;
+  }
+
   /* ================= modal ================= */
 
   function openModal(title, buildBody, buildFoot) {
@@ -380,9 +420,11 @@
 
   async function addFiles(fileList) {
     const files = Array.from(fileList);
-    const usable = files.filter((f) => isPdfFile(f) || isImageFile(f) || isHtmlFile(f));
+    const usable = isImageTool()
+      ? files.filter((f) => isImageFile(f))
+      : files.filter((f) => isPdfFile(f) || isImageFile(f) || isHtmlFile(f));
     if (!usable.length) {
-      toast("Only PDF or image files are supported", true);
+      toast(isImageTool() ? "Only JPG or PNG images are supported" : "Only PDF or image files are supported", true);
       return 0;
     }
     let added = 0;
@@ -390,6 +432,8 @@
       try {
         if (state.selectedTool === "compress" && isPdfFile(file)) {
           await withProgress("Opening PDF...", (setPct) => loadCompressPdf(file, setPct));
+        } else if (isImageTool() && isImageFile(file)) {
+          await loadImageSource(file);
         } else {
           await loadSource(file);
         }
@@ -815,6 +859,15 @@
   async function renderPageCanvas(entry, scale) {
     scale = Math.max(0.05, scale);
     const src = state.sources[entry.fileId];
+    if (src && src.kind === "image" && src.image) {
+      const canvas = document.createElement("canvas");
+      const w = Math.max(1, Math.round((src.width || src.image.width) * scale));
+      const h = Math.max(1, Math.round((src.height || src.image.height) * scale));
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d").drawImage(src.image, 0, 0, w, h);
+      return canvas;
+    }
     const pj = await src.pdf.getPage(entry.sourceIndex + 1);
     if (!entry.srcRotation) {
       entry.srcRotation = ((((pj.rotate || 0) % 360) + 360) % 360);
@@ -899,8 +952,12 @@
     }
   }
 
+  function isImageTool() {
+    return ["resize-image", "compress-image", "image-dimensions"].indexOf(state.selectedTool) !== -1;
+  }
+
   function isFileCardTool() {
-    return ["merge", "compress", "repair", "unlock", "organize"].indexOf(state.selectedTool) !== -1;
+    return ["merge", "compress", "repair", "unlock", "organize"].indexOf(state.selectedTool) !== -1 || isImageTool();
   }
 
   function isPageCardTool() {
@@ -1109,29 +1166,33 @@
           cover.appendChild(canvas);
         } catch (err) {
           console.error(err);
-          cover.textContent = "PDF";
+          cover.textContent = file.kind === "image" ? "Image" : "PDF";
         }
       }
       sheet.appendChild(cover);
 
       const hover = document.createElement("div");
       hover.className = "ws-file-hover";
-      const rotateBtn = document.createElement("button");
-      rotateBtn.type = "button";
-      rotateBtn.title = "Rotate";
-      rotateBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.2-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-      rotateBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        selectFile(fileId, false);
-        rotateSelection(90);
-      });
-      hover.appendChild(rotateBtn);
+      if (!isImageTool()) {
+        const rotateBtn = document.createElement("button");
+        rotateBtn.type = "button";
+        rotateBtn.title = "Rotate";
+        rotateBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.2-5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20 5v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        rotateBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          selectFile(fileId, false);
+          rotateSelection(90);
+        });
+        hover.appendChild(rotateBtn);
+      }
       hover.appendChild(makeRemoveBtn(() => removeFile(fileId)));
       sheet.appendChild(hover);
 
       const stats = document.createElement("span");
       stats.className = "ws-file-stats";
-      stats.textContent = formatSize(file.size) + " - " + pages.length + " page" + (pages.length === 1 ? "" : "s");
+      stats.textContent = file.kind === "image"
+        ? formatSize(file.size) + " - " + file.width + " x " + file.height + " px"
+        : formatSize(file.size) + " - " + pages.length + " page" + (pages.length === 1 ? "" : "s");
       wrap.appendChild(stats);
       wrap.appendChild(sheet);
 
@@ -1150,6 +1211,7 @@
     }
     applySelectionClasses();
     updateAddFab();
+    if (isImageTool()) fillImageFields(currentImageSource());
   }
 
   async function renderPageCards() {
@@ -1455,7 +1517,9 @@
     el.pageStack.classList.remove("is-cards");
     const empty = document.createElement("div");
     empty.className = "ws-empty";
-    const copy = isOrganizeTool()
+    const copy = isImageTool()
+      ? ["Drop image files here", "JPG or PNG files stay in your browser."]
+      : isOrganizeTool()
       ? ["Drop PDF files here", "Keep whole PDFs in this workspace. Drag cards to reorder."]
       : ["Your workspace is empty", "Add a PDF or image file to start editing."];
     empty.innerHTML =
@@ -1468,7 +1532,7 @@
     btn.type = "button";
     btn.className = "ws-btn ws-btn-primary";
     btn.style.margin = "0 auto";
-    btn.textContent = isOrganizeTool() ? "Select PDF files" : "Choose file";
+    btn.textContent = isImageTool() ? "Select image files" : isOrganizeTool() ? "Select PDF files" : "Choose file";
     btn.addEventListener("click", () => el.fileInput.click());
     empty.appendChild(btn);
     el.pageStack.appendChild(empty);
@@ -1476,7 +1540,7 @@
 
   async function rerender(pageRefs) {
     if (pageRefs === "all" || !pageRefs) {
-      if (state.selectedTool === "compress") el.thumbs.innerHTML = "";
+      if (state.selectedTool === "compress" || isImageTool()) el.thumbs.innerHTML = "";
       else await renderThumbs();
       await renderStack();
     } else {
@@ -2667,6 +2731,198 @@
     return true;
   }
 
+  function currentImageSource() {
+    const ids = selectedFileIds();
+    const fileId = ids.length ? ids[0] : orderedFileIds()[0];
+    const src = fileId == null ? null : state.sources[fileId];
+    if (!src || src.kind !== "image" || !src.image) return null;
+    return src;
+  }
+
+  function canvasToBlob(canvas, mime, quality) {
+    return new Promise((resolve) => canvas.toBlob(resolve, mime, quality));
+  }
+
+  function fillImageFields(src) {
+    if (!src) return;
+    const w = src.width || src.image.width;
+    const h = src.height || src.image.height;
+    const rw = document.getElementById("imgResizeW");
+    const rh = document.getElementById("imgResizeH");
+    if (rw && !rw.dataset.touched) rw.value = String(w);
+    if (rh && !rh.dataset.touched) rh.value = String(h);
+    const unit = (document.getElementById("imgDimUnit") || {}).value || "px";
+    const dpiEl = document.getElementById("imgDimDpi");
+    const dpi = Math.max(36, parseFloat(dpiEl && dpiEl.value) || 96);
+    const dw = document.getElementById("imgDimW");
+    const dh = document.getElementById("imgDimH");
+    if (dw && !dw.dataset.touched) dw.value = String(pxToUnit(w, unit, dpi));
+    if (dh && !dh.dataset.touched) dh.value = String(pxToUnit(h, unit, dpi));
+    const kb = document.getElementById("imgCompressKb");
+    if (kb && !kb.value) kb.value = String(Math.max(10, Math.round(src.size / 1024)));
+  }
+
+  function pxToUnit(px, unit, dpi) {
+    const n = Number(px) || 0;
+    if (unit === "in") return +(n / dpi).toFixed(2);
+    if (unit === "cm") return +((n / dpi) * 2.54).toFixed(2);
+    if (unit === "mm") return +((n / dpi) * 25.4).toFixed(1);
+    return Math.round(n);
+  }
+
+  function unitToPx(value, unit, dpi) {
+    const n = Number(value) || 0;
+    if (unit === "in") return Math.max(1, Math.round(n * dpi));
+    if (unit === "cm") return Math.max(1, Math.round((n / 2.54) * dpi));
+    if (unit === "mm") return Math.max(1, Math.round((n / 25.4) * dpi));
+    return Math.max(1, Math.round(n));
+  }
+
+  function drawImageToSize(src, width, height) {
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(width));
+    canvas.height = Math.max(1, Math.round(height));
+    const ctx = canvas.getContext("2d");
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(src.image, 0, 0, canvas.width, canvas.height);
+    return canvas;
+  }
+
+  async function encodeImageCanvas(canvas, src, quality, forceJpeg) {
+    const mime = forceJpeg || src.mime !== "image/png" ? "image/jpeg" : "image/png";
+    if (mime === "image/jpeg") {
+      const out = document.createElement("canvas");
+      out.width = canvas.width;
+      out.height = canvas.height;
+      const ctx = out.getContext("2d");
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0, 0, out.width, out.height);
+      ctx.drawImage(canvas, 0, 0);
+      return canvasToBlob(out, mime, quality == null ? 0.92 : quality);
+    }
+    return canvasToBlob(canvas, mime);
+  }
+
+  async function downloadResizedImage() {
+    const src = currentImageSource();
+    if (!src) {
+      toast("Add an image first", true);
+      return;
+    }
+    const w = Math.max(1, parseInt((document.getElementById("imgResizeW") || {}).value, 10) || src.width);
+    const h = Math.max(1, parseInt((document.getElementById("imgResizeH") || {}).value, 10) || src.height);
+    const canvas = drawImageToSize(src, w, h);
+    const blob = await encodeImageCanvas(canvas, src, 0.92);
+    const ext = src.mime === "image/png" ? ".png" : ".jpg";
+    download(blob, baseName(src.name) + "-" + w + "x" + h + ext);
+    toast("Downloaded " + w + " x " + h + " image");
+    return true;
+  }
+
+  async function downloadCompressedImage() {
+    const src = currentImageSource();
+    if (!src) {
+      toast("Add an image first", true);
+      return;
+    }
+    const targetKb = Math.max(10, parseFloat((document.getElementById("imgCompressKb") || {}).value) || 200);
+    const target = targetKb * 1024;
+    let width = src.width;
+    let height = src.height;
+    let quality = 0.82;
+    let blob = await encodeImageCanvas(drawImageToSize(src, width, height), src, quality, true);
+    let guard = 0;
+    while (blob.size > target && guard < 18) {
+      if (quality > 0.28) quality = Math.max(0.28, quality - 0.08);
+      else {
+        width = Math.max(32, Math.round(width * 0.86));
+        height = Math.max(32, Math.round(height * 0.86));
+      }
+      blob = await encodeImageCanvas(drawImageToSize(src, width, height), src, quality, true);
+      guard++;
+    }
+    download(blob, baseName(src.name) + "-compressed.jpg");
+    toast("Compressed to " + formatSize(blob.size));
+    return true;
+  }
+
+  async function downloadDimensionImage() {
+    const src = currentImageSource();
+    if (!src) {
+      toast("Add an image first", true);
+      return;
+    }
+    const unit = (document.getElementById("imgDimUnit") || {}).value || "px";
+    const dpi = Math.max(36, parseFloat((document.getElementById("imgDimDpi") || {}).value) || 96);
+    const wPx = unitToPx((document.getElementById("imgDimW") || {}).value, unit, dpi);
+    const hPx = unitToPx((document.getElementById("imgDimH") || {}).value, unit, dpi);
+    const canvas = drawImageToSize(src, wPx, hPx);
+    const blob = await encodeImageCanvas(canvas, src, 0.92);
+    const ext = src.mime === "image/png" ? ".png" : ".jpg";
+    download(blob, baseName(src.name) + "-" + wPx + "x" + hPx + ext);
+    toast("Downloaded " + wPx + " x " + hPx + " px");
+    return true;
+  }
+
+  function bindImageTools() {
+    const rw = document.getElementById("imgResizeW");
+    const rh = document.getElementById("imgResizeH");
+    const rlock = document.getElementById("imgResizeLock");
+    function syncResize(fromW) {
+      const src = currentImageSource();
+      if (!src || !rw || !rh || !(rlock && rlock.checked)) return;
+      const ratio = src.width / Math.max(1, src.height);
+      if (fromW) rh.value = String(Math.max(1, Math.round(parseFloat(rw.value) / ratio)));
+      else rw.value = String(Math.max(1, Math.round(parseFloat(rh.value) * ratio)));
+    }
+    if (rw) {
+      rw.addEventListener("input", () => { rw.dataset.touched = "1"; syncResize(true); });
+    }
+    if (rh) {
+      rh.addEventListener("input", () => { rh.dataset.touched = "1"; syncResize(false); });
+    }
+    const dw = document.getElementById("imgDimW");
+    const dh = document.getElementById("imgDimH");
+    const dlock = document.getElementById("imgDimLock");
+    const unitEl = document.getElementById("imgDimUnit");
+    function syncDim(fromW) {
+      const src = currentImageSource();
+      if (!src || !dw || !dh || !(dlock && dlock.checked)) return;
+      const dpi = Math.max(36, parseFloat((document.getElementById("imgDimDpi") || {}).value) || 96);
+      const unit = (unitEl && unitEl.value) || "px";
+      const ratio = src.width / Math.max(1, src.height);
+      if (fromW) {
+        const wPx = unitToPx(dw.value, unit, dpi);
+        dh.value = String(pxToUnit(wPx / ratio, unit, dpi));
+      } else {
+        const hPx = unitToPx(dh.value, unit, dpi);
+        dw.value = String(pxToUnit(hPx * ratio, unit, dpi));
+      }
+    }
+    if (dw) dw.addEventListener("input", () => { dw.dataset.touched = "1"; syncDim(true); });
+    if (dh) dh.addEventListener("input", () => { dh.dataset.touched = "1"; syncDim(false); });
+    if (unitEl) unitEl.addEventListener("change", () => {
+      const src = currentImageSource();
+      if (dw) dw.dataset.touched = "";
+      if (dh) dh.dataset.touched = "";
+      fillImageFields(src);
+    });
+    const dpiEl = document.getElementById("imgDimDpi");
+    if (dpiEl) dpiEl.addEventListener("change", () => {
+      const src = currentImageSource();
+      if (dw) dw.dataset.touched = "";
+      if (dh) dh.dataset.touched = "";
+      fillImageFields(src);
+    });
+    const resizeBtn = document.getElementById("imgResizeBtn");
+    if (resizeBtn) resizeBtn.addEventListener("click", downloadResizedImage);
+    const compressBtn = document.getElementById("imgCompressBtn");
+    if (compressBtn) compressBtn.addEventListener("click", downloadCompressedImage);
+    const dimBtn = document.getElementById("imgDimBtn");
+    if (dimBtn) dimBtn.addEventListener("click", downloadDimensionImage);
+  }
+
   function blackBoxDataUrl() {
     const c = document.createElement("canvas");
     c.width = 8;
@@ -3137,6 +3393,9 @@
     pagenumbers: { title: "Page numbers", hint: "Stamp a page number on every page.", chips: [], page: [], file: ["pagenumbers", "info", "files"], tab: "file", action: "Download PDF" },
     crop: { title: "Crop PDF", hint: "Trim equal margins, or pick a crop type to resize every page.", chips: [], page: ["crop"], file: [], tab: "page", action: "Download PDF" },
     redact: { title: "Redact PDF", hint: "Cover sensitive areas with black boxes.", chips: ["image", "erase"], page: [], file: ["redact", "info", "files"], tab: "file", mode: "image", action: "Download PDF" },
+    "resize-image": { title: "Resize image", hint: "Set a new width and height, then download.", chips: [], page: [], file: ["resize-image"], tab: "file", action: "Download image" },
+    "compress-image": { title: "Compress image", hint: "Set a target size in KB, then compress.", chips: [], page: [], file: ["compress-image"], tab: "file", action: "Download image" },
+    "image-dimensions": { title: "Image dimensions", hint: "Change size in px, inch, cm or mm.", chips: [], page: [], file: ["image-dimensions"], tab: "file", action: "Download image" },
   };
 
   function readStoredTool() {
@@ -3166,6 +3425,9 @@
     else document.documentElement.removeAttribute("data-tool");
     if (isOrganizeTool()) document.documentElement.setAttribute("data-layout", "cards");
     else document.documentElement.removeAttribute("data-layout");
+    if (el.fileInput) {
+      el.fileInput.accept = isImageTool() ? "image/png,image/jpeg" : "application/pdf,image/png,image/jpeg";
+    }
     const railLabel = document.querySelector(".ws-rail-head span");
     if (railLabel) railLabel.textContent = "Pages";
     const pageNav = document.getElementById("pageNavGroup");
@@ -3277,6 +3539,9 @@
     }
     if (tool === "unlock") return exportPdf({ suffix: "-unlocked" });
     if (tool === "repair") return exportPdf({ suffix: "-repaired" });
+    if (tool === "resize-image") return downloadResizedImage();
+    if (tool === "compress-image") return downloadCompressedImage();
+    if (tool === "image-dimensions") return downloadDimensionImage();
     if (tool === "crop") {
       const targets = state.selected.size ? selectedIndices() : state.pages.map((_, i) => i);
       if (targets.length) {
@@ -3593,6 +3858,7 @@
     }
     const redactBtn = document.getElementById("redactBtn");
     if (redactBtn) redactBtn.addEventListener("click", startRedact);
+    bindImageTools();
 
     document.getElementById("selectAllPages").addEventListener("click", () => {
       if (!state.pages.length) return;
@@ -3658,7 +3924,11 @@
       if (state.sources.length && !state.history.length) {
         state.history.push(snapshot());
       }
-      if (state.sources[0]) el.fileName.value = baseName(state.sources[0].name) + ".pdf";
+      if (state.sources[0]) {
+        const src = state.sources[0];
+        const ext = src.kind === "image" ? (src.mime === "image/png" ? ".png" : ".jpg") : ".pdf";
+        el.fileName.value = baseName(src.name) + ext;
+      }
       await rerender("all");
       toast("Added " + added + " file(s)");
       status("Added " + added + " file(s)");
@@ -3685,7 +3955,11 @@
       if (!incoming.length) return;
       const added = await addFiles(incoming);
       if (!added) return;
-      if (state.sources[0]) el.fileName.value = baseName(state.sources[0].name) + ".pdf";
+      if (state.sources[0]) {
+        const src = state.sources[0];
+        const ext = src.kind === "image" ? (src.mime === "image/png" ? ".png" : ".jpg") : ".pdf";
+        el.fileName.value = baseName(src.name) + ext;
+      }
       await rerender("all");
       toast("Added " + added + " file(s)");
       markSaved();
@@ -3787,6 +4061,8 @@
         try {
           if (state.selectedTool === "compress" && isPdfFile(file)) {
             await withProgress("Opening PDF...", (setPct) => loadCompressPdf(file, setPct));
+          } else if (isImageTool() && isImageFile(file)) {
+            await loadImageSource(file);
           } else {
             await loadSource(file);
           }
@@ -3797,7 +4073,11 @@
       }
       if (state.pages.length) {
         state.history.push(snapshot());
-        if (state.sources[0]) el.fileName.value = baseName(state.sources[0].name) + ".pdf";
+        if (state.sources[0]) {
+          const src = state.sources[0];
+          const ext = src.kind === "image" ? (src.mime === "image/png" ? ".png" : ".jpg") : ".pdf";
+          el.fileName.value = baseName(src.name) + ext;
+        }
         await rerender("all");
         toast("Loaded " + state.sources.length + " file(s)");
         status("Loaded " + state.pages.length + " page(s)");

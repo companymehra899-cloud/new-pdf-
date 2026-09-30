@@ -249,7 +249,10 @@ html[data-tool="extract"] .ws-canvas-toolbar,
 html[data-tool="remove"] .ws-canvas-toolbar,
 html[data-tool="repair"] .ws-canvas-toolbar,
 html[data-tool="pagenumbers"] .ws-canvas-toolbar,
-html[data-tool="crop"] .ws-canvas-toolbar {
+html[data-tool="crop"] .ws-canvas-toolbar,
+html[data-tool="resize-image"] .ws-canvas-toolbar,
+html[data-tool="compress-image"] .ws-canvas-toolbar,
+html[data-tool="image-dimensions"] .ws-canvas-toolbar {
   display: none;
 }
 .ws-chip[hidden] {
@@ -988,12 +991,21 @@ html[data-tool="repair"] .ws-panel-block[data-scope="repair"],
 html[data-tool="pagenumbers"] .ws-panel-block[data-scope="pagenumbers"],
 html[data-tool="crop"] .ws-panel-block[data-scope="crop"],
 html[data-tool="redact"] .ws-panel-block[data-scope="redact"],
+html[data-tool="resize-image"] .ws-panel-block[data-scope="resize-image"],
+html[data-tool="compress-image"] .ws-panel-block[data-scope="compress-image"],
+html[data-tool="image-dimensions"] .ws-panel-block[data-scope="image-dimensions"],
 html[data-tool] .ws-panel-block[data-scope="info"],
 html[data-tool] .ws-panel-block[data-scope="files"] {
   display: block;
 }
 html[data-tool="watermark"] .ws-panel-block[data-scope="info"],
-html[data-tool="watermark"] .ws-panel-block[data-scope="files"] {
+html[data-tool="watermark"] .ws-panel-block[data-scope="files"],
+html[data-tool="resize-image"] .ws-panel-block[data-scope="info"],
+html[data-tool="resize-image"] .ws-panel-block[data-scope="files"],
+html[data-tool="compress-image"] .ws-panel-block[data-scope="info"],
+html[data-tool="compress-image"] .ws-panel-block[data-scope="files"],
+html[data-tool="image-dimensions"] .ws-panel-block[data-scope="info"],
+html[data-tool="image-dimensions"] .ws-panel-block[data-scope="files"] {
   display: none !important;
 }
 html[data-tool="watermark"] .ws-canvas-toolbar {
@@ -1015,7 +1027,10 @@ html[data-tool="unlock"] .ws-tab-body[data-body="page"],
 html[data-tool="repair"] .ws-tab-body[data-body="page"],
 html[data-tool="pagenumbers"] .ws-tab-body[data-body="page"],
 html[data-tool="crop"] .ws-tab-body[data-body="page"],
-html[data-tool="redact"] .ws-tab-body[data-body="page"] {
+html[data-tool="redact"] .ws-tab-body[data-body="page"],
+html[data-tool="resize-image"] .ws-tab-body[data-body="page"],
+html[data-tool="compress-image"] .ws-tab-body[data-body="page"],
+html[data-tool="image-dimensions"] .ws-tab-body[data-body="page"] {
   display: none !important;
 }
 html[data-tool="rotate"] .ws-tab-body[data-body="page"],
