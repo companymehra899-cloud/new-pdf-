@@ -379,6 +379,15 @@ img, svg { display: block; max-width: 100%; }
 }
 .contact-form .btn { align-self: flex-start; }
 .contact-note { margin: 0; color: #2ba84a; font-weight: 700; }
+.legal-narrow { max-width: 620px; text-align: center; }
+.legal-narrow .legal-kicker { text-align: center; }
+.soon-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 26px;
+}
 
 .tool-page { background: #f5f5f5; flex: 1; }
 .tool-page .hero { background: transparent; padding: 0; }

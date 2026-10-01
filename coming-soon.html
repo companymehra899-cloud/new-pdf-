@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Terms &amp; Conditions - Docu-Magic</title>
-<meta name="description" content="Terms and conditions for using Docu-Magic PDF and image tools." />
+<title>Coming soon - Docu-Magic</title>
+<meta name="description" content="Docu-Magic accounts are coming soon. Keep using the tools without an account." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -32,27 +32,15 @@
 </header>
 
 <main class="legal-page">
-  <article class="legal-wrap">
-    <p class="legal-kicker">Legal</p>
-    <h1>Terms &amp; Conditions</h1>
-    <p class="legal-lead">Last updated: 1 October 2026</p>
-    <p>By using Docu-Magic you agree to these terms. If you do not agree, do not use the tools.</p>
-    <h2>The service</h2>
-    <p>Docu-Magic provides browser-based PDF and image tools. Processing happens on your device. We do not guarantee uninterrupted access or that every file will convert without error.</p>
-    <h2>Your files</h2>
-    <p>You are responsible for the files you open. Only use files you have the right to edit. Do not use the tools for unlawful content.</p>
-    <h2>No warranty</h2>
-    <p>The tools are provided as is. We are not liable for lost files, incomplete downloads, or results that do not match what you expected. Keep your own copies.</p>
-    <h2>Acceptable use</h2>
-    <ul>
-      <li>Do not attempt to disrupt or misuse the site.</li>
-      <li>Do not reverse engineer the tools for harm.</li>
-      <li>Do not use automated scraping that overloads the service.</li>
-    </ul>
-    <h2>Changes</h2>
-    <p>We may update these terms. Continued use after a change means you accept the new terms.</p>
-    <h2>Contact</h2>
-    <p>Questions: <a href="contact.html">Contact us</a>. Privacy details: <a href="privacy.html">Privacy Policy</a>.</p>
+  <article class="legal-wrap legal-narrow">
+    <p class="legal-kicker" id="soonKicker">Account</p>
+    <h1 id="soonTitle">We are starting this soon</h1>
+    <p class="legal-lead" id="soonLead">Accounts for Docu-Magic are not ready yet. We will launch Login and Sign up shortly.</p>
+    <p>Until then, every tool works without an account and files stay in your browser.</p>
+    <div class="soon-actions">
+      <a href="index.html#tools" class="btn btn-primary">Browse tools</a>
+      <a href="contact.html" class="btn btn-ghost">Contact us</a>
+    </div>
   </article>
 </main>
 
@@ -69,5 +57,18 @@
   <p class="footer-copy">Client-side PDF editor. Files never leave your browser.</p>
 </footer>
 
+<script>
+(function () {
+  var mode = (new URLSearchParams(window.location.search).get("mode") || "").toLowerCase();
+  if (mode !== "login" && mode !== "signup") return;
+  var kicker = document.getElementById("soonKicker");
+  var title = document.getElementById("soonTitle");
+  var lead = document.getElementById("soonLead");
+  if (kicker) kicker.textContent = mode === "login" ? "Login" : "Sign up";
+  if (title) title.textContent = "We are starting " + (mode === "login" ? "Login" : "Sign up") + " soon";
+  if (lead) lead.textContent = "Accounts for Docu-Magic are not ready yet. We will launch " + (mode === "login" ? "Login" : "Sign up") + " shortly.";
+  document.title = "Coming soon - Docu-Magic";
+})();
+</script>
 </body>
 </html>
