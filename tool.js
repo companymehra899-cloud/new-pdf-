@@ -246,7 +246,11 @@
   const menuToggle = document.querySelector(".menu-toggle");
   const mainNav = document.getElementById("mainNav");
   if (menuToggle && mainNav) {
-    menuToggle.addEventListener("click", () => mainNav.classList.toggle("open"));
+    const menuItems = mainNav.querySelectorAll(".has-menu");
+    menuToggle.addEventListener("click", () => {
+      const open = mainNav.classList.toggle("open");
+      menuItems.forEach((item) => item.classList.toggle("open", open));
+    });
     mainNav.querySelectorAll(".has-menu > .nav-link").forEach((btn) => {
       btn.addEventListener("click", () => btn.parentElement.classList.toggle("open"));
     });
