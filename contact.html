@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Contact us - Docu-Magic</title>
+<meta name="description" content="Contact Docu-Magic about PDF tools, privacy, or support." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css?v=12" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23e5322d'/%3E%3Cpath d='M10 8h8l5 5v11a2 2 0 0 1-2 2h-11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3Cpath d='M18 8v5h5' fill='%23f8b4b0'/%3E%3C/svg%3E" />
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="index.html" class="brand" aria-label="Docu-Magic home">
+      <span class="brand-mark">
+        <svg viewBox="0 0 36 36" aria-hidden="true">
+          <rect width="36" height="36" rx="8" fill="#e5322d"/>
+          <path d="M11 8h9l6 6v14a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z" fill="#fff"/>
+          <path d="M20 8v6h6" fill="#f7c1be"/>
+        </svg>
+      </span>
+      <span class="brand-name">Docu-Magic</span>
+    </a>
+    <div class="header-actions">
+      <a href="index.html" class="btn btn-ghost">All tools</a>
+    </div>
+  </div>
+</header>
+
+<main class="legal-page">
+  <article class="legal-wrap">
+    <p class="legal-kicker">Support</p>
+    <h1>Contact us</h1>
+    <p class="legal-lead">Questions about tools, privacy, or these pages? Send a message.</p>
+    <form class="contact-form" id="contactForm">
+      <label>
+        <span>Name</span>
+        <input type="text" name="name" required maxlength="120" />
+      </label>
+      <label>
+        <span>Email</span>
+        <input type="email" name="email" required maxlength="160" />
+      </label>
+      <label>
+        <span>Message</span>
+        <textarea name="message" rows="6" required maxlength="2000"></textarea>
+      </label>
+      <button type="submit" class="btn btn-primary">Send message</button>
+      <p class="contact-note" id="contactNote" hidden>Thanks. Your message is ready in your email app.</p>
+    </form>
+  </article>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-brand">Docu-Magic</div>
+  <nav class="footer-nav">
+    <a href="index.html">Home</a>
+    <a href="index.html#tools">Tools</a>
+    <a href="privacy.html">Privacy</a>
+    <a href="terms.html">Terms &amp; Conditions</a>
+    <a href="contact.html">Contact us</a>
+  </nav>
+  <p class="footer-copy">Client-side PDF editor. Files never leave your browser.</p>
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById("contactForm");
+  var note = document.getElementById("contactNote");
+  if (!form) return;
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var data = new FormData(form);
+    var name = String(data.get("name") || "").trim();
+    var email = String(data.get("email") || "").trim();
+    var message = String(data.get("message") || "").trim();
+    var body = "From: " + name + " <" + email + ">\n\n" + message;
+    window.location.href = "mailto:hello@docu-magic.app?subject=" + encodeURIComponent("Docu-Magic contact") + "&body=" + encodeURIComponent(body);
+    if (note) note.hidden = false;
+  });
+})();
+</script>
+</body>
+</html>
